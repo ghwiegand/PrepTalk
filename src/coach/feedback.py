@@ -355,18 +355,7 @@ def full_name(turns, first_name):
                           r"[A-ZÄÖÜÉÈ][\wäöüéèà'-]{2,}", text))
 
 
-def phone_checklist(turns, lang, first_name):
-    """✓/○ per element of the call, decided by rules on the applicant's words only (the model ticked a full name
-    when only «Ana» was said, error analysis)."""
-    lines = []
-    for key, label in PHONE_LABEL[lang].items():
-        ok = full_name(turns, first_name) if key == "full_name" else bool(
-            re.search(PHONE[key], " ".join(turns), re.I))
-        lines.append(f"{'✓' if ok else '○'} {label}")
-    return lines
-
-
-PHONE["questions"] = r"\?"  # the applicant asked something back (only in turns after the first)
+# The applicant's own questions are checked in phone_feedback(), after the first turn.
 PHONE_LABEL["de"]["questions"] = "Rückfragen gestellt"
 PHONE_LABEL["fr"]["questions"] = "Questions posées"
 PHONE_LABEL["it"]["questions"] = "Domande poste"

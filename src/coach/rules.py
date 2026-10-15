@@ -117,11 +117,6 @@ def apply_check_rules(parameters, output, lang, context, criteria):
     return output
 
 
-def apply_example_rule(parameters, output, lang, example_criterion):
-    """R1 alone (kept for the evaluation scripts)."""
-    return apply_check_rules(parameters, output, lang, {}, {example_criterion: "example"})
-
-
 # ---- R5: guard rules on every candidate message (no model call) ------------------------------------------------
 # FHGR rule L3 and the dataset's coach_action: distress -> support and refer to a real person; manipulation ->
 # stay in role and redirect. Checked before the message reaches the flow.

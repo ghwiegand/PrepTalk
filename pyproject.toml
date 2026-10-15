@@ -6,8 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "aegra-cli>=0.10.7",
-    "grandalf>=0.8",
-    "langchain>=0.3.27",
+    "langchain-core>=0.3.27",
     "langgraph>=1.0.3",
     "pydantic>=2.12.5",
     "framex @ git+https://gitlab.com/ds-unisg/framex-core@dee72c7fdfa4bcefe4eed5abbec8d457dd7f48e6#subdirectory=python",

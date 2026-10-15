@@ -11,7 +11,6 @@ one evidenced strength and one point to work on.
 - Every quote is checked verbatim against the answer it is said to come from; a quote that is not there turns the
   component into «unclear», and the correction is kept in the topic's history.
 """
-import json
 import re
 
 from . import content
@@ -252,10 +251,6 @@ def apply(data, strength, point, candidate_turns=None):
         imps = [first] + imps[1:2]
     data["improvements"] = imps
     return data
-
-
-def to_json(obj):
-    return json.loads(json.dumps(obj, ensure_ascii=False))
 
 
 def topic_of(question, plan, lang):
