@@ -267,7 +267,7 @@ follow-up is asked, that evidence is the applicant's own words and that nothing 
 follow-up hits the real contradiction is still the 8B model's judgement.
 
 \paragraph{Feedback against FHGR's experts} Independently of simulator and judge, the coach wrote feedback for the 13 FHGR transcripts with
-expert reference feedback; we compared its level per criterion with the expert's and checked its quotes (\texttt{eval/feedback\_eval.py}).
+expert reference feedback; we compared its level per criterion with the expert's and checked its quotes (\texttt{evaluation/feedback\_eval.py}).
 
 \begin{table}[h]
 \centering\small
@@ -448,9 +448,9 @@ sent without constraint from then on.
 \section{Reproducibility}\label{sec:repro}
 \texttt{make run} on a clean checkout starts the coach (Aegra API on port 2026, PostgreSQL, Redis) with Apertus at \texttt{LLM\_BASE\_URL};
 \texttt{make run-gpu} also starts Apertus on a local NVIDIA GPU; \texttt{make chat} talks to it in the terminal (\texttt{--lang fr|it}).
-Evaluation: \texttt{python -m eval.simulate S-01 \ldots} (Gemini Flash), \texttt{python -m eval.judge runs/*.json} (Claude Opus;
-\texttt{JUDGE\_PROVIDER=google} for Gemini Pro), \texttt{python -m eval.regression} (hard requirements),
-\texttt{python -m eval.consistency} (this section's breakdown), \texttt{python -m eval.protocol\_test} (harness variants).
+Evaluation: \texttt{python -m evaluation.simulate S-01 \ldots} (Gemini Flash), \texttt{python -m evaluation.judge runs/*.json} (Claude Opus;
+\texttt{JUDGE\_PROVIDER=google} for Gemini Pro), \texttt{python -m evaluation.regression} (hard requirements),
+\texttt{python -m evaluation.consistency} (this section's breakdown), \texttt{python -m unittest tests.integration.test\_protocol} (harness variants).
 Coach at temperature 0; the simulator samples at 0.9.
 
 Submission repository: \repository{} (currently private).

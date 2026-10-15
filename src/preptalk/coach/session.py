@@ -938,7 +938,7 @@ def summary(state):
             "calls_per_answer": round(state.get("calls", 0) / answers, 2), "status": state.get("status")}
 
 
-if __name__ == "__main__":  # terminal chat for development: python -m coach.session [posting id]
+if __name__ == "__main__":  # terminal chat for development: python -m preptalk.coach.session [posting id]
     posting = content.postings().get(sys.argv[1]) if len(sys.argv) > 1 else None
     ctx = content.context_from(posting=posting, name=os.environ.get("COACH_NAME", "Lea"))
     s = Session(ctx)

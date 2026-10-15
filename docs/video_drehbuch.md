@@ -17,7 +17,7 @@ Getestet am 14.10.2026 mit genau diesen Eingaben (Docker-Container gegen Apertus
 Start im Video:
 
 ```
-python3 src/chat_client.py --scenario S-01 --trace trace.html
+make chat ARGS="--scenario S-01 --trace trace.html"
 ```
 
 ## Ablauf

@@ -1,19 +1,18 @@
 """Measure the deterministic rules on data they were not tuned on.
 
 R1 (concrete example) against the FHGR expert annotations (criteria_scores.concrete_examples <= 2 = vague), and
-R5 (guard) on guard_cases.json, new phrasings written for this test (not taken from the datasets):
+R5 (guard) on data/guard_cases.json, new phrasings written for this test (not taken from the datasets):
 stage 1 = patterns only, stage 1+2 = patterns, then the model (LLM_BASE_URL) for everything else.
 
-    python -m eval.rules_eval            # R1 and R5 stage 1 (no model)
-    python -m eval.rules_eval --model    # also R5 stage 1+2 (one model call per case)
+    python -m evaluation.rules_eval            # R1 and R5 stage 1 (no model)
+    python -m evaluation.rules_eval --model    # also R5 stage 1+2 (one model call per case)
 """
 import collections
 import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from coach import content, rules  # noqa: E402
+from preptalk.coach import content, rules
 
 
 def r1():
@@ -35,11 +34,11 @@ def r1():
 
 
 def r5(with_model):
-    cases = json.loads((Path(__file__).with_name("guard_cases.json")).read_text(encoding="utf-8"))
+    cases = json.loads((Path(__file__).parent / "data" / "guard_cases.json").read_text(encoding="utf-8"))
     stage1, both = collections.Counter(), collections.Counter()
     session = None
     if with_model:
-        from coach import session  # noqa: F811 - configures the model endpoint
+        from preptalk.coach import session  # noqa: F811 - configures the model endpoint
     for gold, _lang, text in cases:
         p1 = rules.guard(text) or "none"
         stage1[(gold, p1)] += 1

@@ -78,14 +78,14 @@ make chat ARGS="--posting P-01 --lang fr --name Alex"
 
 The terminal displays its welcome locally in the selected language (German by default).
 It connects to the backend only after your first non-empty answer; pressing Enter immediately exits
-without creating a thread. The greeting text is shared with the backend in `src/coach/greetings.py`.
+without creating a thread. The greeting text is shared with the backend in `src/preptalk/coach/greetings.py`.
 Once the interview starts, a localized progress bar tracks completed main questions from the actual
 interview plan. Follow-ups and repeated questions stay on the same main question; your own questions
 and early feedback are labelled separately. API clients can read this metadata from `coach.progress`.
 
 Without a local GPU, point `LLM_BASE_URL` (and `LLM_API_KEY`) at a hosted endpoint running Swiss AI's vLLM image
 (`ghcr.io/swiss-ai/vllm_apertus_1.5_release`, e.g. a Hugging Face Inference Endpoint on one L4 GPU, as in our
-evaluation); `python -m eval.schema_check` checks a new endpoint before use.
+evaluation); `python -m evaluation.schema_check` checks a new endpoint before use.
 
 The API is Aegra's (LangGraph Platform compatible): `POST /threads`, then
 `POST /threads/{id}/runs/wait` with `{"assistant_id": "agent", "input": {"messages": [{"role": "user", "content": "..."}]}}`.
@@ -106,14 +106,18 @@ for HackApertus use and therefore not committed here. Details: [technical report
 
 | Path | Responsibility |
 | --- | --- |
-| `src/main.py` | LangGraph state, setup, and conversation recovery |
-| `src/coach/content.py` | Dataset loading, question plans, and FrameX flow generation |
-| `src/coach/session.py` | Turn execution, replay, model calls, guards, and fallbacks |
-| `src/coach/rules.py` | Deterministic checks on answers and company claims |
-| `src/coach/feedback.py` | Feedback validation and text/spoken rendering |
-| `src/coach/evidence.py` | Experimental evidence-based coaching |
-| `src/coach/trace.py` | Decision trace rendering |
-| `src/eval/` | Simulation, judges, regression checks, and comparisons |
+| `src/preptalk/api/graph.py` | LangGraph state, setup, and conversation recovery |
+| `src/preptalk/cli/` | Terminal client, localized presentation, and loading animation |
+| `src/preptalk/coach/content.py` | Dataset loading, question plans, and FrameX flow generation |
+| `src/preptalk/coach/session.py` | Turn execution, replay, model calls, guards, and fallbacks |
+| `src/preptalk/coach/rules.py` | Deterministic checks on answers and company claims |
+| `src/preptalk/coach/feedback.py` | Feedback validation and text/spoken rendering |
+| `src/preptalk/coach/evidence.py` | Experimental evidence-based coaching |
+| `src/preptalk/coach/trace.py` | Decision trace rendering |
+| `evaluation/` | Simulation, judges, regression checks, and comparisons |
+| `tests/unit/` | Fast checks without services or challenge data |
+| `tests/integration/` | FrameX interview flows and API protocol checks |
+| `tests/support/` | Local fake model server used by integration tests |
 | `docs/report/` | LaTeX sources for the technical report |
 | `docs/challenge_docs/` | Local challenge reference documents (Git-ignored) |
 
@@ -133,6 +137,24 @@ services or call a model. `make report` rebuilds the PDF with pdfLaTeX and the p
 `docs/report/report.tex`, or with Tectonic, which fetches its TeX packages on the first build.
 Regenerating the report figures additionally requires Matplotlib.
 
+Automated tests live outside the application and use Python's built-in `unittest` runner:
+
+```bash
+make test-unit      # standard library only; no setup or services required
+uv run make test    # all tests, with local dependencies, FHGR data and the pinned FrameX binary
+```
+
+Alternatively, use Docker to supply the dependencies, engine and datasets:
+
+```bash
+docker compose build coach
+make test-docker
+```
+
+The tests require no model credentials or running API. Protocol tests start a fake model on a local,
+automatically assigned port. `make test-integration` runs just the integration suite. `make check`
+lints application code, tests, evaluation tools and the figure generator, then validates Compose.
+
 ## Evaluation commands
 
 Evaluation models are separate from the deployed coach. The simulator uses Gemini Flash by default
@@ -141,9 +163,8 @@ Evaluation models are separate from the deployed coach. The simulator uses Gemin
 
 ```bash
 make eval SCENARIOS="S-01 S-04 S-05"
-docker compose exec coach python -m eval.rules_eval
-docker compose exec coach python -m eval.protocol_test
-docker compose exec coach python -m eval.schema_check
+docker compose exec coach python -m evaluation.rules_eval
+docker compose exec coach python -m evaluation.schema_check
 ```
 
 Local scripts need `PYTHONPATH=src` and model configuration exported in the shell; they do not load
@@ -151,16 +172,15 @@ Local scripts need `PYTHONPATH=src` and model configuration exported in the shel
 
 | Module | Purpose |
 | --- | --- |
-| `eval.simulate` | Simulate candidates in FHGR scenarios |
-| `eval.judge` | Judge recorded interviews; `JUDGE_PROVIDER=google` selects Gemini Pro |
-| `eval.regression` | Check recorded runs against hard requirements |
-| `eval.feedback_eval` | Compare feedback with FHGR reference feedback |
-| `eval.consistency` | Compare results across languages, situations, and profiles |
-| `eval.protocol_test` | Exercise harness variants with a fake model |
-| `eval.schema_check` | Check reply schemas on a new endpoint |
-| `eval.ab_compare` | Compare baseline and pilot runs from `src/eval/ab_run.sh` |
+| `evaluation.simulate` | Simulate candidates in FHGR scenarios |
+| `evaluation.judge` | Judge recorded interviews; `JUDGE_PROVIDER=google` selects Gemini Pro |
+| `evaluation.regression` | Check recorded runs against hard requirements |
+| `evaluation.feedback_eval` | Compare feedback with FHGR reference feedback |
+| `evaluation.consistency` | Compare results across languages, situations, and profiles |
+| `evaluation.schema_check` | Check reply schemas on a new endpoint |
+| `evaluation.ab_compare` | Compare baseline and pilot runs from `evaluation/ab_run.sh` |
 
-For example: `PYTHONPATH=src uv run --locked python -m eval.regression runs/my-run`.
+For example: `PYTHONPATH=src uv run --locked python -m evaluation.regression runs/my-run`.
 
 ## Challenge and licence
 

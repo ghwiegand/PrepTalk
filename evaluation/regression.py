@@ -1,7 +1,7 @@
 """Rule-based regression suite: the hard requirements counted directly on interview logs, next to the LLM judge
 (which overlooks exactly these errors, see the error analysis). Every check comes from a failure we found.
 
-    python -m eval.regression runs/vllm [runs/eval9 ...]   -> table per run; exit code 1 if a hard limit is broken
+    python -m evaluation.regression runs/vllm [runs/eval9 ...]   -> table per run; exit code 1 if a hard limit is broken
 
 Hard limits (must be 0 / met): aborted or hung interviews, reactions copying the prompt's examples, feedback about
 the applicant in the third person, coach turns in another language, guard-handled messages quoted as evidence,
@@ -14,9 +14,8 @@ import statistics
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from coach import content, feedback, rules, session  # noqa: E402
-from coach import feedback as fbmod  # noqa: E402  (check() has a local variable «feedback»)
+from preptalk.coach import content, feedback, rules, session
+from preptalk.coach import feedback as fbmod  # check() has a local variable «feedback»
 
 SORRY = ("hier ist etwas schiefgelaufen", "quelque chose n'a pas fonctionné", "qualcosa è andato storto")  # the coach's error message, not a question about what went wrong
 SUPPORT = ("Danke, dass du das so offen", "Merci de le dire", "Grazie per averlo")

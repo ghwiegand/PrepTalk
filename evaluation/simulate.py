@@ -4,7 +4,7 @@ it only stands in for a teenager: Gemini Flash by default (GOOGLE_API_KEY; SIM_M
 server with SIM_PROVIDER=openai (SIM_BASE_URL / SIM_MODEL). SIM_HARD=1 adds two hard persona traits per scenario (one-word answers, typos,
 digressions, written dialect, requests to slow down or explain, discouragement, a language switch), for robustness.
 
-    python -m eval.simulate S-01 S-05 ...      results in runs/<scenario>.json
+    python -m evaluation.simulate S-01 S-05 ...      results in runs/<scenario>.json
 """
 import hashlib
 import json
@@ -14,8 +14,7 @@ import time
 import urllib.request
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from coach import content, session  # noqa: E402
+from preptalk.coach import content, session
 
 SIM_URL = os.environ.get("SIM_BASE_URL", "http://localhost:8000/v1").rstrip("/") + "/chat/completions"
 SIM_MODEL = os.environ.get("SIM_MODEL", "")

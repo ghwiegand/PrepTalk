@@ -1,7 +1,7 @@
 """Decision trace of one interview, from FrameX's receipts: per answer, what the model judged, which rule
 overrode it, and what the coach did next. For teachers and for checking the coach.
 
-    python -m coach.trace runs/S-04.json > trace.html
+    python -m preptalk.coach.trace runs/S-04.json > trace.html
 """
 import html
 import json

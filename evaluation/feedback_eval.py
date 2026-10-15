@@ -4,17 +4,15 @@ For each transcript the coach writes its feedback from the conversation alone; w
 with the expert's (exact agreement, within one level, mean absolute error) and count how many of its evidence
 quotes occur verbatim in the candidate's words. No simulator and no LLM judge are involved.
 
-    python -m eval.feedback_eval            -> runs/feedback_eval.json and a summary
+    python -m evaluation.feedback_eval            -> runs/feedback_eval.json and a summary
 """
 import json
 import os
-import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from coach import content, feedback, session  # noqa: E402
-from framex import dialogue  # noqa: E402
+from preptalk.coach import content, feedback, session
+from framex import dialogue
 
 
 def run(transcript):

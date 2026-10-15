@@ -1,15 +1,14 @@
 """Same interviews, new feedback: regenerate only the feedback of recorded interviews with the current code, so
 that two feedback versions can be judged on identical conversations (no simulator noise).
 
-    python -m eval.refeedback runs/vllm12 runs/refb_new      -> one file per interview, feedback replaced
+    python -m evaluation.refeedback runs/vllm12 runs/refb_new      -> one file per interview, feedback replaced
 """
 import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from coach import session  # noqa: E402
-from framex import dialogue  # noqa: E402
+from preptalk.coach import session
+from framex import dialogue
 
 
 def regenerate(path, out_dir):

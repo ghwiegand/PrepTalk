@@ -16,8 +16,8 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 from pydantic import BaseModel
 
-from coach import content, rules, session, trace
-from coach.greetings import ASK_JOB
+from preptalk.coach import content, rules, session, trace
+from preptalk.coach.greetings import ASK_JOB
 
 LOCK = threading.Lock()  # FrameX's dialogue module keeps per-run globals: one turn at a time
 # A harness may resend the whole conversation without the thread state (stateless runs). The coach's state is also

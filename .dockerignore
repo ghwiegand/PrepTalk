@@ -5,7 +5,9 @@
 !aegra.json
 !src/
 !src/**
+!evaluation/
+!evaluation/**
 
-# Exclude generated Python files within src as well.
+# Exclude generated Python files from the included directories.
 **/__pycache__/
 **/*.py[cod]

@@ -5,7 +5,7 @@ ANTHROPIC_API_KEY), Gemini Pro as a second judge of another family (JUDGE_PROVID
 OpenAI-compatible server (JUDGE_PROVIDER=openai, JUDGE_BASE_URL / JUDGE_MODEL). It checks the
 scenario's success_criteria_for_coach and rates five aspects from 1 to 5.
 
-    python -m eval.judge runs/S-01.json runs/S-04.json ...   -> runs/judged.json and a table
+    python -m evaluation.judge runs/S-01.json runs/S-04.json ...   -> runs/judged.json and a table
 """
 import json
 import os
@@ -16,8 +16,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from coach import content  # noqa: E402
+from preptalk.coach import content
 
 URL = os.environ.get("JUDGE_BASE_URL", "http://localhost:8000/v1").rstrip("/") + "/chat/completions"
 MODEL = os.environ.get("JUDGE_MODEL", "")

@@ -1,9 +1,9 @@
 """Consistency of the judged runs: scenario criteria met by language, situation, difficulty and candidate profile,
 for each judge, plus the spread over scenarios and the calls per answer by language.
 
-    python -m eval.consistency runs/g17 runs/g17h   -> table on stdout, runs/consistency.json, docs/consistency.png
+    python -m evaluation.consistency runs/g17 runs/g17h   -> table on stdout, runs/consistency.json, docs/consistency.png
 
-Each run directory holds S-*.json (the interviews) and opus/judged.json, gemini/judged.json (eval.judge).
+Each run directory holds S-*.json (the interviews) and opus/judged.json, gemini/judged.json (evaluation.judge).
 """
 import json
 import statistics
@@ -11,10 +11,9 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from coach import content  # noqa: E402
+from preptalk.coach import content
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 # candidates whose coach_focus names a sensitive case from the FHGR material (dyslexia, German as a second language,
 # nervousness or shyness, emotional moments, an interrupted school or apprenticeship, gender-atypical choice,
 # dialect to be understood, strong self-doubt)

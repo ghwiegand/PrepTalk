@@ -37,8 +37,9 @@ COPY --from=framex /framex/target/release/framex /usr/local/bin/framex
 COPY --from=fhgr /fhgr/datasets ./fhgr/datasets
 COPY aegra.json .
 COPY src/ ./src/
+COPY evaluation/ ./evaluation/
 ENV PATH="/app/.venv/bin:$PATH" FRAMEX_BINARY=/usr/local/bin/framex FHGR_DATA=/app/fhgr/datasets \
-    FRAMEX_MODEL_CACHE=/tmp/coach-model-cache
+    FRAMEX_MODEL_CACHE=/tmp/coach-model-cache PYTHONPATH=/app/src
 EXPOSE 2026
 USER app
 CMD ["aegra", "serve"]

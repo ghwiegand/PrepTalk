@@ -2,6 +2,6 @@
   "name": "PrepTalk",
   "dependencies": ["./src"],
   "graphs": {
-    "agent": "./src/main.py:graph"
+    "agent": "./src/preptalk/api/graph.py:graph"
   }
 }

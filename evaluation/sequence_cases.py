@@ -3,7 +3,7 @@ how each version coaches one topic (the strengths question). The candidate answe
 question it receives: main question, concrete situation, own part, result. Earlier questions get one complete
 answer; after the strengths topic the candidate asks for feedback.
 
-    COACH_SEQUENCES=1 python -m eval.sequence_cases out.json
+    COACH_SEQUENCES=1 python -m evaluation.sequence_cases out.json
 """
 import json
 import re
@@ -11,8 +11,7 @@ import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from coach import content, session  # noqa: E402
+from preptalk.coach import content, session
 
 COMPLETE = {"de": "In der Schnupperlehre habe ich letzten Herbst ein Bauteil im CAD gezeichnet. Ich habe die Masse "
                   "selbst kontrolliert, und am Ende wurde es gefräst; dabei habe ich gelernt, genau zu arbeiten.",

@@ -1,6 +1,6 @@
 """Baseline vs pilot on the same scenarios: judge scores plus direct checks of the relevant dialogue places.
 
-    python -m eval.ab_compare runs/ab/base_var runs/ab/pilot_var [more pairs ...]  -> table and runs/ab/compare.json
+    python -m evaluation.ab_compare runs/ab/base_var runs/ab/pilot_var [more pairs ...]  -> table and runs/ab/compare.json
 
 Per version: Opus scenario criteria and aspects; hard limits of the regression suite; calls per answer, latency;
 follow-ups per interview and, judged one by one by Claude Opus 5.5, whether each follow-up was necessary and
@@ -16,8 +16,7 @@ import sys
 import urllib.request
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from coach import content, evidence  # noqa: E402
+from preptalk.coach import content, evidence
 
 FOLLOW = {t for lang in ("de", "fr", "it") for k in ("example", "own", "company", "step") for t in [content.TEXT[lang][k]]}
 FOLLOW |= {t for lang in evidence.ACTION_TEXT for t in evidence.ACTION_TEXT[lang].values()}

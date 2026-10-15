@@ -1,14 +1,14 @@
 """Talk to the running coach (Aegra on port 2026) in the terminal. Standard library only.
 
-    python3 src/chat_client.py [--url http://localhost:2026] [--posting P-01 | --scenario S-04] [--lang fr]
+    PYTHONPATH=src python3 -m preptalk.cli [--url http://localhost:2026] [--posting P-01 | --scenario S-04] [--lang fr]
                                [--trace trace.html]   (decision trace of the interview, written when it ends)
 """
 import argparse
 import json
 import urllib.request
 
-from coach.greetings import ASK_JOB
-from terminal_ui import TerminalUI
+from preptalk.coach.greetings import ASK_JOB
+from .terminal import TerminalUI
 
 
 def post(url, body):
@@ -56,9 +56,7 @@ def main():
         if coach.get("done"):
             if args.trace:
                 import os
-                import sys
-                sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-                from coach import trace
+                from preptalk.coach import trace
                 ctx = state.get("context") or {}
                 run = {"scenario": args.scenario or args.posting or "", "context": ctx, "lang": ctx.get("lang", ""),
                        "state": coach}

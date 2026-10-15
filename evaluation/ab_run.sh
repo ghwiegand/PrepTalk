@@ -5,10 +5,11 @@
 cd "$(dirname "$0")/.."
 export LLM_NAME=${LLM_NAME:-swiss-ai/Apertus-v1.5-8B} COACH_SEQUENCES=$2
 if [ "$4" = gemini ]; then export SIM_PROVIDER=google SIM_HARD=1 SIM_SEED=v2 SIM_MODEL=gemini-flash-latest; fi
-export RUNS_DIR=$PWD/../runs/ab/$1
+export PYTHONPATH="$PWD/src:$PWD${PYTHONPATH:+:$PYTHONPATH}"
+export RUNS_DIR="$PWD/runs/ab/$1"
 mkdir -p $RUNS_DIR/opus
 until [ "$(curl -s -m 20 -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $LLM_API_KEY" $LLM_BASE_URL/models)" = 200 ]; do sleep 15; done
-lane() { for s in "$@"; do FRAMEX_MODEL_CACHE=/tmp/ab-$1-$s-$RANDOM python3 -u -m eval.simulate $s; done }
+lane() { for s in "$@"; do FRAMEX_MODEL_CACHE=/tmp/ab-$1-$s-$RANDOM python3 -u -m evaluation.simulate $s; done }
 if [ "$3" = dev ]; then
   lane S-01 S-02 S-24 S-14 > $RUNS_DIR/lane1.log 2>&1 &
   lane S-04 S-17 S-12 S-09 > $RUNS_DIR/lane2.log 2>&1 &
@@ -21,5 +22,5 @@ else
   lane S-28 S-21 S-22 > $RUNS_DIR/lane4.log 2>&1 &
 fi
 wait
-python3 -m eval.regression $RUNS_DIR > $RUNS_DIR/regression.md 2>&1
-JUDGE_PROVIDER=anthropic RUNS_DIR=$RUNS_DIR/opus python3 -m eval.judge $RUNS_DIR/S-*.json > $RUNS_DIR/judge_opus.md 2>&1
+python3 -m evaluation.regression $RUNS_DIR > $RUNS_DIR/regression.md 2>&1
+JUDGE_PROVIDER=anthropic RUNS_DIR=$RUNS_DIR/opus python3 -m evaluation.judge $RUNS_DIR/S-*.json > $RUNS_DIR/judge_opus.md 2>&1

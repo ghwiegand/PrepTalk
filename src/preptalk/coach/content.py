@@ -10,7 +10,7 @@ import re
 from functools import lru_cache
 from pathlib import Path
 
-DATA = Path(os.environ.get("FHGR_DATA", Path(__file__).resolve().parents[2] / "fhgr" / "datasets"))
+DATA = Path(os.environ.get("FHGR_DATA", Path(__file__).resolve().parents[3] / "fhgr" / "datasets"))
 LANGS = ("de", "fr", "it")
 LANG_NAME = {"de": "German (Standard German as used in Switzerland, no ß)", "fr": "French", "it": "Italian"}
 

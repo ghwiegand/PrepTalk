@@ -1,0 +1,1 @@
+"""PrepTalk application."""

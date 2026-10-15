@@ -1,10 +1,10 @@
-"""Exercise real FrameX progress without model calls: python -m eval.progress_test."""
+"""Exercise real FrameX progress without model calls: python -m unittest tests.integration.test_progress."""
 
 import unittest
 from unittest.mock import patch
 
-from coach import content
-from coach.session import Session
+from preptalk.coach import content
+from preptalk.coach.session import Session
 
 
 def judge(parameters):
