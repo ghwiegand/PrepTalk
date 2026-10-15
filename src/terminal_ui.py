@@ -16,6 +16,13 @@ TEXT = {
         "waiting": "Der Coach bereitet die Antwort vor",
         "goodbye": "Bis zum nächsten Mal. Viel Erfolg!",
         "trace": "Entscheidungsspur",
+        "question": "Hauptfrage {current} von {total}",
+        "completed_count": "{completed}/{total} Hauptfragen abgeschlossen",
+        "follow_up": "Nachfrage zur aktuellen Hauptfrage",
+        "questions": "Deine Fragen an den Betrieb",
+        "completed": "Gespräch abgeschlossen",
+        "early_feedback": "Vorzeitiges Feedback",
+        "ended": "Gespräch beendet",
     },
     "fr": {
         "language": "Français",
@@ -25,6 +32,13 @@ TEXT = {
         "waiting": "Le coach prépare sa réponse",
         "goodbye": "À bientôt et bonne chance !",
         "trace": "Trace des décisions",
+        "question": "Question principale {current} sur {total}",
+        "completed_count": "{completed}/{total} questions principales terminées",
+        "follow_up": "Question complémentaire à la question actuelle",
+        "questions": "Tes questions à l'entreprise",
+        "completed": "Entretien terminé",
+        "early_feedback": "Retour anticipé",
+        "ended": "Entretien arrêté",
     },
     "it": {
         "language": "Italiano",
@@ -34,6 +48,13 @@ TEXT = {
         "waiting": "Il coach sta preparando la risposta",
         "goodbye": "A presto e in bocca al lupo!",
         "trace": "Traccia delle decisioni",
+        "question": "Domanda principale {current} di {total}",
+        "completed_count": "{completed}/{total} domande principali completate",
+        "follow_up": "Approfondimento della domanda attuale",
+        "questions": "Le tue domande all'azienda",
+        "completed": "Colloquio completato",
+        "early_feedback": "Feedback anticipato",
+        "ended": "Colloquio interrotto",
     },
 }
 
@@ -92,6 +113,23 @@ class TerminalUI:
         except (EOFError, KeyboardInterrupt):
             print()
             return ""
+
+    def progress(self, progress):
+        if not progress:
+            return
+        phase = progress["phase"]
+        if phase == "interview":
+            label = self.text["question"].format(**progress)
+        else:
+            label = self.text[phase]
+        self.body(label, muted=True)
+        size = min(20, self.width - 6)
+        filled = size * progress["completed"] // progress["total"]
+        self.body("[" + "━" * filled + "·" * (size - filled) + "]", muted=True)
+        self.body(self.text["completed_count"].format(**progress), muted=True)
+        if phase == "interview" and progress.get("follow_up"):
+            self.body(self.text["follow_up"], muted=True)
+        print()
 
     @contextmanager
     def waiting(self):

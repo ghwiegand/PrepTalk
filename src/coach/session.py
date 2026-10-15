@@ -377,6 +377,23 @@ class Session:
         self.state = state or {"record": [], "pending": None, "done": False, "calls": 0, "answers": 0}
         self.program = content.program(context)
 
+    def progress(self):
+        """Main-question progress, independent of how many answers or follow-ups were needed."""
+        total = len(content.plan(self.context))
+        step = self.state.get("current_step", "")
+        match = re.fullmatch(r"q(\d+)(more|f\d+)?", step)
+        current = int(match[1]) if match else None
+        completed = current - 1 if current else total if step == "askQuestions" else 0
+        phase = "questions" if step == "askQuestions" else "interview"
+        if self.state.get("done"):
+            status = self.state.get("status")
+            if status == "completed":
+                completed, phase = total, "completed"
+            else:
+                phase = "early_feedback" if status == "feedback on request" else "ended"
+        return {"total": total, "completed": completed, "current": current,
+                "phase": phase, "follow_up": bool(match and match[2])}
+
     # ---- the channel FrameX's dialogue tools talk to ----
     class Channel(dialogue.Channel):
         def __init__(self, session):
@@ -791,6 +808,8 @@ class Session:
                         self.channel.transcript.append(t)
                 return entry["output"], {"mode": "replayed"}
             before = len(self.channel.transcript)
+            if name in ("_turn", "_repairTurn") and "step" in parameters:
+                self.state["current_step"] = parameters["step"]
             pending = self.state.get("pending")
             if pending and pending["index"] == i and name in ("_turn", "_repairTurn"):
                 # the question was phrased and shown last time; this message is the answer

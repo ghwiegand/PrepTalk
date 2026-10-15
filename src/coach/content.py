@@ -297,6 +297,11 @@ def program(context):
     after = "closing" if phone else "askQuestions"
     lines = [
         "world open.",
+        # Expose the flow node to the adapter: progress follows the plan, including reasks and follow-ups.
+        "external turn(?S, ?A) using _turn[step -> ?S] <- ?S[flow#askNow -> ?A; flow#ask -> ?Q].",
+        'external repair(?S, ?A) using _repairTurn[step -> ?S] <- ?R[tool#name -> "_turn"; '
+        'tool#arg1 -> ?S; tool#arg2 -> ?A; result("formatError") -> ?E; result("received") -> ?X] '
+        'AND ?S[flow#ask -> ?Q].',
         "coach:flow#Flow[flow#start -> greet; flow#checkWithAnswer -> true; flow#historyOnReask -> true].",
         f"greet:flow#Say[flow#text -> {fx(t['phone_greet' if phone else 'greet'])}; flow#next -> q1].",
     ]

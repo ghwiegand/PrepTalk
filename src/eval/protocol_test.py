@@ -119,6 +119,9 @@ def locally_greeted(lang):
     assert out["context"]["lang"] == lang
     assert out["messages"][-1].content != ASK_JOB[lang], "setup greeting repeated"
     assert out["coach"]["pending"], "interview did not start"
+    progress = out["coach"]["progress"]
+    assert progress["current"] == 1 and progress["completed"] == 0
+    assert progress["total"] > 0 and progress["phase"] == "interview"
     show(lang, out)
     return out
 

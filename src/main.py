@@ -170,6 +170,7 @@ def coach(state: CoachState):
             ctx = dict(ctx, voice=bool(state.voice))
         s = session.Session(ctx, state.coach)
         reply = s.step(None if started else text)
+        s.state["progress"] = s.progress()
     message = AIMessage(content="\n\n".join(reply))
     with LOCK:
         remember(state.messages + [message], ctx, s.state, state.setup_asked)

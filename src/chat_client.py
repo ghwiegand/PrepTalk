@@ -52,6 +52,7 @@ def main():
         if messages:
             ui.message(messages[-1].get("content", ""))
         coach = (state or {}).get("coach") or {}
+        ui.progress(coach.get("progress"))
         if coach.get("done"):
             if args.trace:
                 import os

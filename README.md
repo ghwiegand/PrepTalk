@@ -79,6 +79,9 @@ make chat ARGS="--posting P-01 --lang fr --name Alex"
 The terminal displays its welcome locally in the selected language (German by default).
 It connects to the backend only after your first non-empty answer; pressing Enter immediately exits
 without creating a thread. The greeting text is shared with the backend in `src/coach/greetings.py`.
+Once the interview starts, a localized progress bar tracks completed main questions from the actual
+interview plan. Follow-ups and repeated questions stay on the same main question; your own questions
+and early feedback are labelled separately. API clients can read this metadata from `coach.progress`.
 
 Without a local GPU, point `LLM_BASE_URL` (and `LLM_API_KEY`) at a hosted endpoint running Swiss AI's vLLM image
 (`ghcr.io/swiss-ai/vllm_apertus_1.5_release`, e.g. a Hugging Face Inference Endpoint on one L4 GPU, as in our
