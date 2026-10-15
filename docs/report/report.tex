@@ -1,0 +1,481 @@
+% PrepTalk -- technical report, HackApertus 2026, Track 2A (FHGR). Build: make report (pdflatex, twice).
+\documentclass[10pt,a4paper]{article}
+
+% ---------------------------------------------------------------- numbers (one place to update after a new run)
+\newcommand{\repository}{\href{https://github.com/ghwiegand/PrepTalk}{github.com/ghwiegand/PrepTalk}}
+\newcommand{\videolink}{} % Add the demo URL when available; the empty field is hidden below.
+\newcommand{\devOpus}{72}        % scenario criteria met, Claude Opus judge, 14 development scenarios
+\newcommand{\hoOpus}{56}         % same, 14 held-out scenarios
+\newcommand{\devGem}{80}         % Gemini Pro judge
+\newcommand{\hoGem}{67}
+\newcommand{\allOpus}{64}        % both sets pooled
+\newcommand{\allGem}{74}
+\newcommand{\callsDev}{3.06}
+\newcommand{\callsHo}{3.08}
+\newcommand{\callsMax}{3.18}
+\newcommand{\preOpus}{48}        % same 12 scenarios before the rules
+\newcommand{\preGem}{55}
+\newcommand{\hardOpusDev}{59}    % hard simulated applicants
+\newcommand{\hardOpusHo}{56}
+\newcommand{\hardGemDev}{66}
+\newcommand{\hardGemHo}{63}
+\newcommand{\turnMedian}{12}
+\input{consistency_numbers.tex}
+
+% ---------------------------------------------------------------- packages
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{newtxtext,newtxmath}
+\usepackage[scaled=0.95]{sourcesanspro}
+\renewcommand{\familydefault}{\rmdefault}
+\ifPDFTeX
+  \usepackage[varqu]{inconsolata}
+\else
+  \setmonofont{lmmono10-regular.otf}[Scale=MatchLowercase]
+\fi
+\usepackage[a4paper,margin=2.1cm,top=2.3cm,bottom=2.4cm]{geometry}
+\usepackage{microtype}
+\usepackage[table]{xcolor}
+\usepackage{graphicx}
+\usepackage{booktabs,tabularx,array,multirow}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage[font=small,labelfont={bf,sf},labelsep=period]{caption}
+\usepackage[most]{tcolorbox}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,backgrounds}
+\usepackage[hidelinks]{hyperref}
+
+
+\definecolor{navy}{HTML}{1B2440}
+\definecolor{rust}{HTML}{A8441F}
+\definecolor{steel}{HTML}{2C5D8A}
+\definecolor{paper}{HTML}{F5F3EE}
+\definecolor{ink}{HTML}{3A3F4B}
+\definecolor{okgreen}{HTML}{2E7D4F}
+
+\graphicspath{{../}{./}}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4.5pt}
+\setlength{\emergencystretch}{2em}
+\setlist{nosep,leftmargin=1.2em,itemsep=1.5pt,topsep=2pt}
+\renewcommand{\arraystretch}{1.18}
+
+\titleformat{\section}{\sffamily\bfseries\large\color{navy}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\sffamily\bfseries\normalsize\color{navy}}{\thesubsection}{0.5em}{}
+\titleformat{\paragraph}[runin]{\sffamily\bfseries\small\color{rust}}{}{0pt}{}[.]
+\titlespacing*{\section}{0pt}{12pt}{4pt}
+\titlespacing*{\subsection}{0pt}{8pt}{3pt}
+\titlespacing*{\paragraph}{0pt}{4pt}{0.6em}
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\fancyfoot[L]{\sffamily\scriptsize\color{ink}HackApertus 2026 \textperiodcentered{} Track 2A \textperiodcentered{} FHGR \textperiodcentered{} PrepTalk, Team NLP-Lab}
+\fancyfoot[R]{\sffamily\scriptsize\color{ink}\thepage}
+
+% criterion tags: which judging criterion a section serves
+\newcommand{\crit}[2]{\tcbox[on line,colback=#1,colframe=#1,coltext=white,boxsep=0pt,left=3pt,right=3pt,top=1.5pt,bottom=1.5pt,arc=2pt,fontupper=\sffamily\bfseries\scriptsize]{#2}}
+\newcommand{\perf}{\crit{steel}{Performance 50\,\%}}
+\newcommand{\cons}{\crit{navy}{Consistency 25\,\%}}
+\newcommand{\inno}{\crit{rust}{Innovation 25\,\%}}
+\newcommand{\gate}{\crit{okgreen}{Required gate}}
+
+\newtcolorbox{keybox}[1][]{enhanced,colback=paper,colframe=paper,arc=3pt,boxrule=0pt,left=8pt,right=8pt,top=6pt,bottom=6pt,
+  borderline west={2.5pt}{0pt}{rust},#1}
+\newtcolorbox{dialog}[1]{enhanced,colback=white,colframe=navy!25,arc=2pt,boxrule=0.5pt,left=6pt,right=6pt,top=4pt,bottom=4pt,
+  title={\sffamily\bfseries\scriptsize #1},coltitle=navy,colbacktitle=navy!8,attach boxed title to top left={xshift=6pt,yshift=-2pt},
+  boxed title style={boxrule=0pt,arc=2pt},fontupper=\small}
+\newcommand{\coach}[1]{\par\noindent\hangindent=4.2em\hangafter=1\makebox[4.2em][l]{\sffamily\bfseries\scriptsize\color{steel}COACH}#1}
+\newcommand{\cand}[1]{\par\noindent\hangindent=4.2em\hangafter=1\makebox[4.2em][l]{\sffamily\bfseries\scriptsize\color{ink}APPLICANT}\textit{#1}}
+\newcommand{\note}[1]{\par\noindent\hspace*{4.2em}{\sffamily\scriptsize\color{rust}$\blacktriangleright$ #1}}
+
+\hypersetup{pdftitle={PrepTalk: technical report},pdfauthor={Team NLP-Lab}}
+
+\begin{document}
+
+% ================================================================ title
+\begin{tcolorbox}[enhanced,colback=navy,colframe=navy,arc=0pt,boxrule=0pt,left=14pt,right=14pt,top=12pt,bottom=12pt,
+  coltext=white,width=\textwidth]
+{\sffamily\bfseries\footnotesize\color{rust!60!white}HACKAPERTUS 2026 \textperiodcentered{} TRACK 2A \textperiodcentered{} FHGR: AI-POWERED JOB INTERVIEW COACH}\\[6pt]
+{\fontsize{24}{28}\selectfont\bfseries PrepTalk}\\[3pt]
+{\large An interview coach in which Apertus talks and judges, and a rule engine decides}\\[8pt]
+{\sffamily\small Team NLP-Lab \textperiodcentered{} Götz-Henrik Wiegand (PhD student, University of St.\,Gallen) \textperiodcentered{} Online\\[2pt]
+Code: \repository{} (currently private)\ifdefempty{\videolink}{}{ \textperiodcentered{} Demo: \videolink{}}}
+\end{tcolorbox}
+
+\vspace{2pt}
+% ================================================================ summary
+\section*{Summary}
+Swiss teenagers usually have their first formal interview at 14 to 16, for an apprenticeship, and teachers cannot
+run one-to-one mock interviews for every student. PrepTalk runs such an interview in German, French or Italian
+(answers in Swiss German dialect are understood): questions that fit the occupation and the company, follow-ups when an answer is vague
+or lacks an example, answers to the applicant's own questions, and at the end feedback on FHGR's 11 criteria with
+evidence from the conversation, a tip per criterion and one concrete next step.
+
+The design idea is a \textbf{hybrid of a language model and a rule engine}. Apertus~1.5~8B phrases a short reaction,
+judges each answer («answered?», «concrete example?») and writes answers and feedback. \emph{What happens next}
+(which question, when to ask again, when to ask for an example, when to stop and coach) is decided by FrameX, a small
+frame-logic engine, from explicit rules and the model's three-valued verdicts. Rules check everything the model writes before the
+applicant sees it, and every model call has a fixed fallback.
+
+\begin{keybox}
+\textbf{Headline results} (final code on vLLM, Swiss AI image, one L4 GPU; Gemini Flash plays the applicants; 28
+interviews over all six FHGR situations and three languages, 14 of them scenarios never used during development):
+\begin{itemize}
+\item \textbf{Required gate met:} \textbf{\callsDev{}--\callsHo{} model calls per candidate answer} (limit 5, maximum in one interview
+\callsMax{}); 16\,GB of VRAM for the bf16 weights (limit 32\,GB); Docker with \texttt{make run}.
+\item \textbf{Hard requirements met in every interview} (counted by rules, not judged): no aborted interview, no
+invented evidence, no third person, no wrong language, no graded distress.
+\item \textbf{Scenario criteria met} (two independent frontier judges): Claude Opus~5.5 \textbf{\devOpus\,\%} on the development
+scenarios and \textbf{\hoOpus\,\%} on unseen ones; Gemini Pro \devGem\,\% / \hoGem\,\%. The same coach without its rules: \preOpus\,\% / \preGem\,\%.
+\item \textbf{Feedback against FHGR's experts:} level within one step of the expert's in 100\,\% of 141 criteria,
+evidence quoted verbatim in 87\,\%.
+\end{itemize}
+\end{keybox}
+
+% ================================================================ at a glance
+\subsection*{How PrepTalk answers the challenge}
+\begin{center}\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.3cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{3.0cm}@{}}
+\toprule
+\sffamily\bfseries Requirement & \sffamily\bfseries How PrepTalk meets it & \sffamily\bfseries Evidence \\
+\midrule
+\gate{} Apertus 1.5 8B, $<$\,32\,GB VRAM & \texttt{swiss-ai/Apertus-v1.5-8B} in bf16 on vLLM, one consumer GPU (16\,GB weights); no fine-tuning & §\ref{sec:apertus} \\
+\gate{} $<$\,5 calls per answer & guard + reaction + judgement (incl.\ example check) per answer; follow-ups and feedback add a few & \callsDev{}--\callsHo{}, Tab.\,\ref{tab:main} \\
+Adaptive interview & follow-ups decided by rules from the judge's verdict, worded by Apertus from the applicant's own words; FHGR's conditional difficult questions when the profile gives a reason & §\ref{sec:arch}, Box\,\ref{box:dialog} \\
+Six stages, 10--15 questions & flow compiled per interview from FHGR's question bank, by situation, language and occupational field & Fig.\,\ref{fig:arch} \\
+Useful feedback & 11 criteria with rubric levels, verbatim evidence, one strength first, at most two points, one next step; no character labels & Tab.\,\ref{tab:experts} \\
+Multilingual & de, fr, it throughout; Swiss German answers understood and never penalised; English gets a fixed note & Fig.\,\ref{fig:cons} \\
+Voice-ready & what is decided is separate from what is said; \texttt{voice: true} renders feedback for text-to-speech & §\ref{sec:arch} \\
+Deliverables & Docker (Aegra + PostgreSQL + Redis), \texttt{make run}, source, README, visual overview & §\ref{sec:repro} \\
+\midrule
+\perf{} & rule-checked interview and feedback; two frontier judges, development and held-out scenarios & §\ref{sec:perf} \\
+\cons{} & same flow, rules and fallbacks for every scenario, profile and language; measured per group & §\ref{sec:cons} \\
+\inno{} & hybrid neuro-symbolic control, flows compiled from data, verifiable feedback, receipts & §\ref{sec:inno} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% ================================================================ architecture
+\section{Architecture}\label{sec:arch}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{architecture.png}
+\caption{Visual overview. Top: the interview flow FrameX compiles for one session. Middle: what happens to each
+candidate answer (guard, reaction, judgement, rules). Bottom: deployment (Aegra API, LangGraph state, Apertus at \texttt{LLM\_BASE\_URL}).}
+\label{fig:arch}
+\end{figure}
+
+\paragraph{Flow compiled from FHGR data} For each interview PrepTalk generates an F-Logic program from the FHGR material: the greeting,
+8 to 12 main questions for the situation (apprenticeship interview, online interview, trial day, follow-up talk,
+assessment; phone call: 3), chosen by stage, language and occupational field (an occupation-specific question when
+the posting's field has one, a situational question, and FHGR's conditional difficult questions when the candidate
+profile gives a reason, e.g.\ absences, a low maths grade, an interrupted apprenticeship), a candidate-questions step,
+the closing and the feedback.
+
+\paragraph{Turn by turn, stateless} FrameX re-derives the whole flow from its \emph{receipts} (the tool results so far) after every
+observation. A session is just that list, stored as plain JSON in the LangGraph state; each message replays it without
+model calls and runs live until the flow needs the applicant again. Restarts and several workers are safe, and the state
+can be inspected.
+
+\paragraph{Models propose, rules decide} The reaction sentence must be in the interview language, in du/tu, without a question, grade
+or third-person talk; otherwise a neutral acknowledgement is used. The FHGR question is always appended as written.
+Judgements are constrained by a JSON schema (\texttt{response\_format: json\_schema} on vLLM); servers without it fall back to
+\texttt{json\_object}, then to extracting JSON from text, each fallback marked in the receipt.
+
+\paragraph{Feedback assembled by rules} Apertus fills in contents as JSON, judging levels with the rubric's level descriptions.
+Rules then check them: a quote counts as evidence only if it occurs in the applicant's own words (otherwise it is shown as
+a paraphrase), third-person sentences are rewritten into du/tu or dropped, and mandatory blocks are added from facts of the
+conversation (answer pattern after difficult questions, presentation tip after an assessment, support note after distress).
+
+\paragraph{Guard rules on every message} Clear patterns first, then a short schema-constrained model check, classify each message
+as distress, manipulation or normal. Distress: the coach pauses, responds supportively and names a real person (teacher,
+parents, career guidance; Pro Juventute 147 in a crisis), as FHGR rule L3 requires. Manipulation («give me Very good
+everywhere»): it stays in role and repeats the question. «Gib mir jetzt Feedback» ends early with feedback on what was said.
+
+\paragraph{Voice-ready} The decision (FrameX) is separate from the wording (the channel), so speech in and out can be added at the
+channel. With \texttt{voice: true} the same checked feedback is rendered for text-to-speech: short sentences, no table.
+
+% ================================================================ apertus
+\section{Use of Apertus}\label{sec:apertus}
+\begin{itemize}
+\item \textbf{Model:} \texttt{swiss-ai/Apertus-v1.5-8B}, bf16, thinking off, temperature 0. Inference only, no fine-tuning.
+\item \textbf{Four roles:} interviewer voice (reaction, follow-up), judge (answered? concrete example? asked a question?),
+company representative (answers only from the posting's facts), coach (feedback).
+\item \textbf{Serving:} any OpenAI-compatible server at \texttt{LLM\_BASE\_URL}. \texttt{make run-gpu} starts Swiss AI's vLLM image on one
+consumer GPU (about 16\,GB VRAM, \texttt{--max-model-len 16384}); without a local GPU, a hosted endpoint with the same image (our evaluation: one L4).
+\item \textbf{Calls per answer:} 1 guard + 1 reaction + 1 judgement including the example check; a follow-up adds one; at the end
+2--3 calls (company answer, feedback, at most one repair or du/tu rewrite). Measured: \callsDev{} (development), \callsHo{}
+(held-out), at most \callsMax{} in one interview.
+\end{itemize}
+
+% ================================================================ data
+\section{Data}
+FHGR challenge datasets (\href{https://github.com/fhgr/Hackapertus}{github.com/fhgr/Hackapertus}): questions (de/fr/it and
+dialect variants), postings, candidate profiles, scenarios, rubric (11 criteria $\times$ 4 levels), 27 feedback rules,
+annotated answers and transcripts. They are licensed for HackApertus use, so the Docker build fetches them instead of
+committing them. Candidates and companies are synthetic; no personal data is used or stored, and transcripts of our
+runs stay outside the repository. The model runs on premise, as the challenge's privacy requirement asks.
+
+% ================================================================ performance
+\section{Evaluation: performance}\label{sec:perf}
+\perf{}\quad
+\textbf{Setup.} A simulator (Gemini Flash, not part of the coach) plays the applicant from the candidate profile (persona,
+school, dialect). The coach interviews and gives feedback; two judges of other model families, \textbf{Claude Opus~5.5} (strict) and \textbf{Gemini Pro},
+check each scenario's \texttt{success\_criteria\_for\_coach} with the same prompt. The coach runs on \textbf{vLLM}, as in the
+official run. We report the 14 scenarios used during development and the 14 \textbf{held out} until the end. Hard requirements are counted
+by rules (\texttt{eval/regression.py}), not judged.
+
+\begin{table}[h]
+\centering\small
+\caption{Main results. Scenario criteria met (\%) by judge; hard requirements and costs counted directly.}
+\label{tab:main}
+\begin{tabularx}{\textwidth}{@{}Xcccc c@{}}
+\toprule
+\sffamily\bfseries On vLLM, Gemini Flash as applicant & \sffamily\bfseries Hard req. & \sffamily\bfseries Gemini Pro & \sffamily\bfseries Claude Opus & \sffamily\bfseries Calls/answer & \sffamily\bfseries s/turn \\
+\midrule
+Final code, 14 development scenarios & all met & \devGem & \textbf{\devOpus} & \callsDev & \turnMedian \\
+Final code, 14 held-out scenarios & all met & \hoGem & \textbf{\hoOpus} & \callsHo & \turnMedian \\
+Final code, hard applicants$^1$, dev / held-out & all met & \hardGemDev{} / \hardGemHo & \textbf{\hardOpusDev{} / \hardOpusHo} & 3.06 & 16 / 18 \\
+\addlinespace
+Same 12 scenarios \emph{before} rules R1--R5 & 1 aborted$^2$ & \preGem & \textbf{\preOpus} & 2.27 & 11 \\
+\bottomrule
+\end{tabularx}
+\par\smallskip\footnotesize$^1$ two hard traits per persona: one-word answers, typos, digressions, written dialect, requests to slow
+down, discouragement, language switch. $^2$ and 9 of 12 feedbacks in the third person.
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{results.png}
+\caption{Left: scenario criteria met, by judge, from before the rules to the final code on vLLM. Right: the two-stage guard on
+unseen sentences (patterns alone vs.\ patterns plus Apertus).}
+\label{fig:results}
+\end{figure}
+
+\paragraph{What the rules achieve} On the same 12 scenarios and the same simulator, Opus rates the coach with rules at 67\,\% against
+48\,\% without; language consistency rises from 3.4 to 4.2 and age-appropriateness from 3.4 to 3.8 (of 5). Development also
+exposed failures no judge score showed: a model timeout ended the interview (5 of 9 under load), under vLLM the feedback
+ran into the token limit writing whitespace, a rewrite doubled the calls. Each now has a fallback and a regression test.
+
+\paragraph{What they do not achieve} Adaptivity (2.1 of 5) and feedback quality (2.2) stay close to where they were. The rules guarantee that a
+follow-up is asked, that evidence is the applicant's own words and that nothing is graded that should not be; whether a
+follow-up hits the real contradiction is still the 8B model's judgement.
+
+\paragraph{Feedback against FHGR's experts} Independently of simulator and judge, the coach wrote feedback for the 13 FHGR transcripts with
+expert reference feedback; we compared its level per criterion with the expert's and checked its quotes (\texttt{eval/feedback\_eval.py}).
+
+\begin{table}[h]
+\centering\small
+\caption{Feedback levels against FHGR's expert reference (141 criteria in 13 transcripts).}
+\label{tab:experts}
+\begin{tabularx}{\textwidth}{@{}Xccccc@{}}
+\toprule
+\sffamily\bfseries Feedback version & \sffamily\bfseries Exact & \sffamily\bfseries Within one & \sffamily\bfseries Mean abs.\ error & \sffamily\bfseries Bias & \sffamily\bfseries Evidence verbatim \\
+\midrule
+Criteria names only & 49\,\% & 95\,\% & 0.56 & $-0.43$ (too harsh) & 69\,\% \\
++ FHGR rubric level descriptions & 65\,\% & 100\,\% & 0.35 & $-0.08$ & 0\,\% \\
++ explicit evidence format & 60\,\% & 100\,\% & 0.40 & $-0.14$ & 92\,\% \\
+\textbf{Final, on vLLM (schema enforced)} & \textbf{57\,\%} & \textbf{100\,\%} & \textbf{0.43} & $\mathbf{-0.14}$ & \textbf{87\,\%} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+The middle line shows why one metric misleads: with the rubric the model gave better levels but dropped its evidence, which
+FHGR's rule «never assess without evidence» forbids; an explicit format restored it.
+
+\begin{dialog}{Box \refstepcounter{table}\label{box:dialog}\thetable. Excerpts from the final run (synthetic applicants, Gemini Flash), shortened [\ldots]}
+{\sffamily\scriptsize\color{rust}S-05, Italian, apprenticeship interview}
+\cand{Mah, sicuramente in team! [\ldots] Però, se c'è da fare un lavoro concentrato con i numeri, tipo inserire dati o fare l'inventario su Excel, mi piace anche mettermi [\ldots]}
+\note{rule: no concrete example \textrightarrow{} follow-up, worded by Apertus from the applicant's words}
+\coach{Quando hai lavorato da solo su Excel per fare l'inventario, cosa ti è successo e come l'hai gestito?}
+\cand{Tipo, una volta il totale delle magliette su Excel non coincideva per niente con quelle che avevo contato sugli scaffali [\ldots]}
+\par\medskip
+{\sffamily\scriptsize\color{rust}S-17, French, interrupted apprenticeship}
+\cand{En équipe, direct. Je joue au foot depuis des années, alors l'esprit d'équipe, je connais. [\ldots]}
+\coach{Peux-tu me raconter une situation concrète où tu as travaillé en équipe sur un chantier et comment tu as réparti les tâches?}
+\cand{Pendant mon stage, on devait poser des conduites d'évacuation [\ldots] et moi je coupais les tubes à la bonne taille [\ldots]}
+\par\medskip
+{\sffamily\scriptsize\color{rust}S-23, Swiss German dialect, strong self-doubt}
+\cand{Pff\ldots{} Strategia? Kei Ahnig, i bin halt nid guat im Plän macha. [\ldots] es nützt halt meistens gliich nid vill bi mir.}
+\coach{Welche konkrete Hausaufgabenstrategie würdest du ausprobieren, um Mathe und Französisch besser zu verstehen?}
+\note{dialect understood, coach answers in Standard German; self-doubt is not graded; the feedback names teacher, parents, career guidance and the 147}
+\end{dialog}
+
+% ================================================================ consistency
+\section{Evaluation: consistency}\label{sec:cons}
+\cons{}\quad
+The challenge asks for reliable performance across scenarios, candidate profiles, questions and languages. PrepTalk is built
+for this: every interview runs the same compiled flow, the same rules and the same fallbacks; FHGR's questions are asked as
+written in the interview language; the coach decodes at temperature 0; and anything the model writes that breaks a rule is
+replaced by a fixed text, so a weak model output cannot change the course of an interview.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{consistency.png}
+\caption{Scenario criteria met by language, candidate profile and situation (final code, development and held-out scenarios pooled;
+$n$ = scenario runs). Sensitive profiles: dyslexia, German as a second language, nervousness, emotional moments, an
+interrupted apprenticeship or school, gender-atypical choice, strong self-doubt, dialect to be understood.}
+\label{fig:cons}
+\end{figure}
+
+\begin{table}[h]
+\centering\small
+\caption{Consistency of the final code (28 scenario runs, both judges; percent of scenario criteria met).}
+\label{tab:cons}
+\begin{tabularx}{\textwidth}{@{}lXcc@{}}
+\toprule
+\sffamily\bfseries Axis & \sffamily\bfseries Group ($n$) & \sffamily\bfseries Claude Opus & \sffamily\bfseries Gemini Pro \\
+\midrule
+\csname @@input\endcsname consistency.tex 
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{What holds everywhere} The hard requirements are met in every one of the 28 interviews and also with the hard applicants;
+calls per answer are the same in every language (\callslang); every interview reaches the feedback.
+
+\paragraph{Languages} French and Italian follow the same flow from the translated question bank; reactions and follow-ups are checked
+for the interview language, and the feedback is assembled in it. Swiss German answers are understood and never penalised:
+the concrete-example rule has dialect markers, so dialect does not look vague (precision 0.52 before, 0.75 after).
+
+\paragraph{Profiles} Sensitive profiles score no lower than standard ones. The guard rules were measured on 46 phrasings written
+for the test, not on the dataset: with Apertus as second stage they recognise distress 10/10 and manipulation 8/8 with no false alarm
+on 22 harmless sentences using the same words (Fig.\,\ref{fig:results}, right). English messages are recognised with no false
+alarm on 7{,}300 FHGR and simulated messages.
+
+\paragraph{Where it is not consistent} \spread{} The gap between development and held-out scenarios (\devOpus{} vs.\ \hoOpus\,\%) shows that our
+iterations fitted the development scenarios. The weakest scenarios need a social judgement that no rule makes: in one, an
+applicant belittles grammar-school students and the coach takes the comparison as a strength instead of mirroring its effect.
+Per-situation numbers rest on one or two scenarios each and are indicative only.
+
+\paragraph{Rules measured on data they were not built on} The concrete-example rule against FHGR's expert annotations of 401 answers
+(never used for tuning): precision / recall de 0.95 / 0.79 ($n=326$), fr 0.85 / 0.92 (29), it 0.83 / 0.83 (21).
+
+% ================================================================ innovation
+\section{What we consider innovative}\label{sec:inno}
+\inno{}\quad
+\textbf{Provenance.} FrameX, the frame-logic engine below, is pre-existing work of the Chair of Data Science and Natural Language
+Processing, University of St.\,Gallen (MIT licence, \href{https://gitlab.com/ds-unisg/framex-core}{gitlab.com/ds-unisg/framex-core}).
+New in this project: its use as the controller of an LLM interview, the flow compilation from FHGR data, the rules,
+the verifiable feedback and the evaluation (all of \texttt{src/}), and four small extensions contributed to FrameX during the hackathon.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[font=\sffamily\scriptsize, node distance=4mm and 7mm,
+  box/.style={draw=#1, fill=#1!8, rounded corners=2pt, align=center, minimum height=9mm, text width=24mm, line width=0.6pt},
+  arr/.style={-{Stealth[length=2mm]}, line width=0.6pt, color=ink}]
+\node[box=ink] (in) {applicant's\\answer};
+\node[box=steel, right=of in] (llm) {\textbf{Apertus 8B}\\proposes: verdict,\\reaction, follow-up};
+\node[box=rust, right=of llm] (rules) {\textbf{rules} check:\\concreteness, language,\\du/tu, quotes};
+\node[box=navy, right=of rules] (fx) {\textbf{FrameX} decides:\\next question, ask again,\\follow-up, feedback};
+\node[box=ink, right=of fx] (out) {coach's turn\\+ receipt};
+\draw[arr] (in) -- (llm); \draw[arr] (llm) -- (rules); \draw[arr] (rules) -- (fx); \draw[arr] (fx) -- (out);
+\draw[arr, color=rust] (rules.south) -- ++(0,-5mm) node[below, color=rust, align=center]{rule fails $\rightarrow$ fixed text / three-valued verdict};
+\end{tikzpicture}
+\caption{The hybrid loop: the language model proposes, deterministic rules check, the symbolic engine decides.}
+\label{fig:hybrid}
+\end{figure}
+
+\begin{enumerate}[leftmargin=1.4em,itemsep=3pt]
+\item \textbf{Hybrid (neuro-symbolic) control of an LLM conversation.} Most LLM coaches let the model run the dialogue from a long
+prompt. In PrepTalk the 8B model never decides the course of the interview: it proposes verdicts and wording, rules check them, and FrameX
+derives the next step from explicit F-Logic rules. Verdicts are three-valued (yes, no, unclear) and combined with a deterministic check:
+model \emph{yes} + rule \emph{vague} $\rightarrow$ no; model \emph{unclear} + rule \emph{concrete} $\rightarrow$ yes.
+\emph{Why it matters:} the 8B judge said «concrete example: yes» to 38 of 38 answers, including stock phrases; the rule turns that into a
+usable signal (precision 0.83--0.95 against FHGR's experts) and makes the coach consistent across languages and profiles.
+
+\item \textbf{Interview flows compiled from didactic data.} The FHGR material (question bank, situations, occupational fields, conditions
+of difficult questions, feedback rules) is compiled per session into a flow program. Adding a situation or a question means adding data,
+not prompt engineering, and FHGR's didactic choices stay visible and auditable.
+
+\item \textbf{Feedback that cannot invent evidence.} Quotes are verified against the applicant's own words before they count as evidence;
+the frame of the feedback (one strength first, at most two points, one next step, no labels, no fear) is produced by rules from FHGR's
+guidelines, the model only fills in content. Result: 100\,\% of levels within one step of FHGR's experts and 87\,\% verbatim evidence on vLLM.
+
+\item \textbf{Receipts: every decision explained, every session replayable.} FrameX keeps a receipt for each observation (verdict, rule that
+fired, fallback used). A session is the list of receipts, so it survives restarts without server state, and a teacher or developer can see
+\emph{why} the coach asked a follow-up (\texttt{--trace} renders it as HTML). This is the basis for teacher dashboards.
+
+\item \textbf{Robustness by design for a hidden benchmark.} Constrained decoding with a fallback ladder (json\_schema, json\_object, text),
+a two-stage guard (patterns, then a short model check for messages without a pattern match), a fixed fallback for every call, and rules
+measured on data they were not built on. Within 5 calls per answer, safety costs one short call.
+
+\item \textbf{Measuring what we did not adopt.} We built an evidence-driven alternative (Apertus extracts claim, situation, own part and result
+with a quote; FrameX chooses a coaching action from the missing evidence). On 2 $\times$ 56 interviews with hard applicants Opus rated it 60\,\%
+vs.\ 57\,\% (within noise) but it asked twice as many unnecessary follow-ups (70 vs.\ 33), because Apertus finds situation and own part in only
+about 63\,\% of answers. It stays behind a switch (\texttt{COACH\_SEQUENCES=1}); the decision rule was fixed before the run: no adoption for a
+better judge score if safety, evidence, flow or cost get worse.
+\end{enumerate}
+
+% ================================================================ error analysis
+\section{Error analysis}
+After each development round we read every interview with its receipts, not only the criteria a judge flagged. Five error patterns of round 3,
+and what the rules do about them:
+
+\begin{center}\small
+\begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{4.4cm}@{}}
+\toprule
+& \sffamily\bfseries Pattern & \sffamily\bfseries Evidence & \sffamily\bfseries Remedy \\
+\midrule
+F1 & Apertus judge says yes to almost everything & 130 of 133 answers «answered»; example check 38$\times$ yes, 0$\times$ no & R1 deterministic concreteness rule, three-valued combination \\
+F2 & Needless repair calls & 23 repairs, 19 in Italian (bare JSON string) & R2 wording decides nothing, never repaired \\
+F3 & Feedback breaks rules of its long prompt & third person in 11 of 12 feedbacks, mandatory hints missing & R3 feedback assembled by rules \\
+F4 & Scenario-specific hooks unused & «open with baking», 2 of 9 misses & open (next steps) \\
+F5 & Judge errors & a question asked counted as not asked & evaluation only \\
+-- & No guardrails & FHGR rule L3 (distress, manipulation) & R5 two-stage guard \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% ================================================================ limitations
+\section{Limitations}
+\begin{itemize}
+\item One simulator (Gemini Flash): simulated teenagers are more fluent and consistent than real ones; no interviews with real teenagers yet.
+Judge scores are indicative, not the official benchmark; our two judges differ by up to 11 points.
+\item The development/held-out gap (\devOpus{} vs.\ \hoOpus\,\%) shows overfitting to the development scenarios.
+\item Social judgements (arrogance, belittling others, an evasive answer) are left to the 8B model and are its weakest point.
+\item Swiss German is understood, not spoken: the coach answers in Standard German.
+\item Constrained decoding was tested with vLLM 0.23 (Swiss AI image); every schema has a rule fallback, and a schema the server rejects is
+sent without constraint from then on.
+\item Latency on one L4: about \turnMedian{}\,s per turn (median, three short calls), 60--80\,s for the feedback.
+\end{itemize}
+
+% ================================================================ reproducibility
+\section{Reproducibility}\label{sec:repro}
+\texttt{make run} on a clean checkout starts the coach (Aegra API on port 2026, PostgreSQL, Redis) with Apertus at \texttt{LLM\_BASE\_URL};
+\texttt{make run-gpu} also starts Apertus on a local NVIDIA GPU; \texttt{make chat} talks to it in the terminal (\texttt{--lang fr|it}).
+Evaluation: \texttt{python -m eval.simulate S-01 \ldots} (Gemini Flash), \texttt{python -m eval.judge runs/*.json} (Claude Opus;
+\texttt{JUDGE\_PROVIDER=google} for Gemini Pro), \texttt{python -m eval.regression} (hard requirements),
+\texttt{python -m eval.consistency} (this section's breakdown), \texttt{python -m eval.protocol\_test} (harness variants).
+Coach at temperature 0; the simulator samples at 0.9.
+
+Submission repository: \repository{} (currently private).
+The reported numbers are from the original hackathon evaluation; this repository cleanup and rename do not rerun those experiments.
+
+% ================================================================ next steps
+\clearpage
+\section{Next steps}
+Strengths named only for a described situation (the evidence part of the alternative, once extraction is reliable); scenario hooks as FrameX
+rules; spoken interviews (speech in and out at the channel); Swiss German output; teacher dashboards built from the receipts; a study with
+real students together with FHGR.
+
+% ================================================================ team
+\section*{Team, disclosure and licence}
+\textbf{Team NLP-Lab:} Götz-Henrik Wiegand (PhD student, University of St.\,Gallen), submitting privately. FrameX is pre-existing work of the
+Chair of Data Science and Natural Language Processing (Prof.\ Siegfried Handschuh), University of St.\,Gallen, used as a dependency from its public
+repository (pinned commit \texttt{dee72c7}). Everything in \texttt{src/} was built during the hackathon. Development used an AI coding assistant
+(Claude Code).
+
+\textbf{Disclosure:} Siegfried Handschuh is a member of the HackApertus jury. He announced this participation in advance and recuses himself from
+judging this submission.
+
+\textbf{Licence:} code Apache 2.0 (FrameX remains MIT); documentation and report CC-BY-4.0. FHGR data not included (licensed by FHGR for
+HackApertus use).
+
+\textbf{References:} FHGR / Profolio interview material, rubric and feedback guidelines; Swiss AI, Apertus 1.5; vLLM; LangGraph; Aegra; FrameX.
+
+\end{document}

@@ -1,0 +1,24 @@
+flowchart TB
+    subgraph flow["Interview flow (FrameX rules, from the FHGR data)"]
+        direction LR
+        G["Greeting<br/><i>as written</i>"] --> I["Introduction<br/>Erzähl etwas über dich"]
+        I --> M["Motivation<br/>Beruf · Betrieb · Aufgaben"]
+        M --> S["Strengths & weaknesses<br/>Stärken · Schwäche ·<br/>Schnupperlehre · Team"]
+        S --> T["Situational<br/>Stell dir vor … · Zukunft"]
+        T --> Q["Candidate questions<br/>answered as the company"]
+        Q --> F["Feedback<br/>11 criteria × 4 levels,<br/>evidence, tips, next step"]
+    end
+    subgraph turn["Each candidate answer"]
+        direction LR
+        A["Answer"] --> J{"Apertus judges<br/>answered? · concrete example?<br/>(JSON schema)"}
+        J -- "not answered" --> R["Ask again once<br/>(rule-checked follow-up)"]
+        J -- "no example" --> E["Ask for a concrete example"]
+        J -- "ok" --> N["Next question:<br/>short reaction (rule-checked)<br/>+ FHGR question as written"]
+    end
+    subgraph arch["Deployment (on-premise, < 32 GB VRAM)"]
+        direction LR
+        UI["Chat UI / API client"] --> AE["Aegra :2026<br/>LangGraph graph 'agent'<br/>PostgreSQL + Redis"]
+        AE --> FX["FrameX engine<br/>(Rust, offline)"]
+        FX -->|"≈ 2–3 calls per answer"| AP["Apertus 1.5 8B<br/>vLLM, OpenAI-compatible"]
+    end
+    flow ~~~ turn ~~~ arch

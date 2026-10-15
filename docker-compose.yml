@@ -1,0 +1,87 @@
+# make run -> docker compose up --build: PostgreSQL + Redis + the coach API on port 2026 (Aegra).
+# The coach calls Apertus 1.5 8B at LLM_BASE_URL (OpenAI-compatible). With a GPU, `make run-gpu`
+# also starts Apertus itself (vLLM, profile "apertus").
+services:
+  postgres:
+    image: pgvector/pgvector:pg18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-coach}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-coach_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-coach}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-coach}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  coach:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${PORT:-2026}:${PORT:-2026}"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-coach}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-coach_secret}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-coach}
+      - AEGRA_CONFIG=aegra.json
+      - AUTH_TYPE=noop
+      - PORT=${PORT:-2026}
+      - REDIS_BROKER_ENABLED=true
+      - REDIS_URL=redis://redis:6379/0
+      - LLM_NAME=${LLM_NAME:-swiss-ai/Apertus-v1.5-8B}
+      - LLM_BASE_URL=${LLM_BASE_URL:-http://host.docker.internal:8000/v1}
+      - LLM_API_KEY=${LLM_API_KEY:-none}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:${PORT:-2026}/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Apertus 1.5 8B on a local NVIDIA GPU (< 32 GB VRAM: bf16 weights need about 16 GB).
+  apertus:
+    profiles: ["apertus"]
+    image: ghcr.io/swiss-ai/vllm_apertus_1.5_release:latest-amd64
+    command: >
+      vllm serve swiss-ai/Apertus-v1.5-8B --served-model-name swiss-ai/Apertus-v1.5-8B
+      --chat-template-content-format string --max-model-len 16384 --gpu-memory-utilization 0.85
+      --host 0.0.0.0 --port 8000
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  postgres_data:
+  hf_cache:
