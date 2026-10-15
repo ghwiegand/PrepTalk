@@ -8,8 +8,7 @@ import json
 import urllib.request
 
 from coach.greetings import ASK_JOB
-
-INPUT_PROMPTS = {"de": "Du: ", "fr": "Toi: ", "it": "Tu: "}
+from terminal_ui import TerminalUI
 
 
 def post(url, body):
@@ -23,30 +22,35 @@ def main():
     ap.add_argument("--url", default="http://localhost:2026")
     ap.add_argument("--posting")
     ap.add_argument("--scenario")
-    ap.add_argument("--lang", choices=INPUT_PROMPTS)
+    ap.add_argument("--lang", choices=ASK_JOB)
     ap.add_argument("--name")
     ap.add_argument("--trace", help="write the decision trace as HTML to this file when the interview ends")
     args = ap.parse_args()
     lang = args.lang or "de"
-    print(f"\n{ASK_JOB[lang]}\n")
-    text = input(INPUT_PROMPTS[lang])
+    ui = TerminalUI(lang)
+    ui.welcome(ASK_JOB[lang])
+    text = ui.ask()
     if not text.strip():
+        ui.goodbye()
         return
 
     # Connect only after the first answer. Include the local greeting in the conversation so the
     # backend knows setup has already been asked and does not repeat it.
-    thread = post(f"{args.url}/threads", {})["thread_id"]
+    thread = None
     extra = {k: v for k, v in (("posting_id", args.posting), ("scenario_id", args.scenario),
                                 ("lang", args.lang), ("name", args.name)) if v}
     turn = {"messages": [{"role": "assistant", "content": ASK_JOB[lang]},
                          {"role": "user", "content": text}], "setup_asked": True, **extra}
     while True:
-        state = post(f"{args.url}/threads/{thread}/runs/wait",
-                     {"assistant_id": "agent", "input": turn})
+        with ui.waiting():
+            if thread is None:
+                thread = post(f"{args.url}/threads", {})["thread_id"]
+            state = post(f"{args.url}/threads/{thread}/runs/wait",
+                         {"assistant_id": "agent", "input": turn})
         messages = state.get("messages", []) if isinstance(state, dict) else []
+        ui.lang = (state.get("context") or {}).get("lang") or args.lang or "de"
         if messages:
-            print("\nCoach:", messages[-1].get("content", ""), "\n")
-        lang = (state.get("context") or {}).get("lang") or args.lang or "de"
+            ui.message(messages[-1].get("content", ""))
         coach = (state or {}).get("coach") or {}
         if coach.get("done"):
             if args.trace:
@@ -59,10 +63,11 @@ def main():
                        "state": coach}
                 with open(args.trace, "w", encoding="utf-8") as f:
                     f.write(trace.render(run))
-                print(f"Decision trace: {os.path.abspath(args.trace)}")
+                ui.trace(os.path.abspath(args.trace))
             break
-        text = input(INPUT_PROMPTS.get(lang, INPUT_PROMPTS["de"]))
+        text = ui.ask()
         if not text.strip():
+            ui.goodbye()
             break
         turn = {"messages": [{"role": "user", "content": text}]}
 

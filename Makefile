@@ -18,7 +18,7 @@ stop:
 
 # Talk to the running coach in the terminal (needs Python 3 on the host, standard library only).
 chat:
-	python3 src/chat_client.py $(ARGS)
+	@python3 src/chat_client.py $(ARGS)
 
 # Simulated interviews on FHGR scenarios (inside the container; simulator Gemini Flash, GOOGLE_API_KEY in .env).
 eval:
