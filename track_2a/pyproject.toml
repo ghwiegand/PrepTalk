@@ -9,7 +9,7 @@ dependencies = [
     "langchain-core>=0.3.27",
     "langgraph>=1.0.3",
     "pydantic>=2.12.5",
-    "framex @ git+https://gitlab.com/ds-unisg/framex-core@dee72c7fdfa4bcefe4eed5abbec8d457dd7f48e6#subdirectory=python",
+    "framex @ git+https://gitlab.com/ds-unisg/framex-core@fae782d15ab1fbc75dff066b176d38d2ae8fca35#subdirectory=python",
 ]
 
 [project.urls]

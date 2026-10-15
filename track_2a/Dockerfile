@@ -4,7 +4,7 @@
 # 1. FrameX reasoning engine (Rust, no third-party crates), from the public FrameX core repository; the Python
 #    package of the same commit comes in through pyproject.toml
 FROM rust:1-slim-bookworm AS framex
-ARG FRAMEX_COMMIT=dee72c7fdfa4bcefe4eed5abbec8d457dd7f48e6
+ARG FRAMEX_COMMIT=fae782d15ab1fbc75dff066b176d38d2ae8fca35
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
 RUN git clone https://gitlab.com/ds-unisg/framex-core /framex && cd /framex && git checkout $FRAMEX_COMMIT \
     && cargo build --release --offline

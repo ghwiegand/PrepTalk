@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -260,7 +260,7 @@ wheels = [
 [[package]]
 name = "framex"
 version = "0.4.4"
-source = { git = "https://gitlab.com/ds-unisg/framex-core?subdirectory=python&rev=dee72c7fdfa4bcefe4eed5abbec8d457dd7f48e6#dee72c7fdfa4bcefe4eed5abbec8d457dd7f48e6" }
+source = { git = "https://gitlab.com/ds-unisg/framex-core?subdirectory=python&rev=fae782d15ab1fbc75dff066b176d38d2ae8fca35#fae782d15ab1fbc75dff066b176d38d2ae8fca35" }
 
 [[package]]
 name = "googleapis-common-protos"
@@ -1055,7 +1055,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "aegra-cli", specifier = ">=0.10.7" },
-    { name = "framex", git = "https://gitlab.com/ds-unisg/framex-core?subdirectory=python&rev=dee72c7fdfa4bcefe4eed5abbec8d457dd7f48e6" },
+    { name = "framex", git = "https://gitlab.com/ds-unisg/framex-core?subdirectory=python&rev=fae782d15ab1fbc75dff066b176d38d2ae8fca35" },
     { name = "langchain-core", specifier = ">=0.3.27" },
     { name = "langgraph", specifier = ">=1.0.3" },
     { name = "pydantic", specifier = ">=2.12.5" },
