@@ -13,15 +13,15 @@ __pycache__/
 trace.html
 
 # External data, engine builds, and evaluation output
-framex/target/
+track_2a/framex/target/
 fhgr/
 runs/
 
 # Report build output (the submitted PDF is kept)
-docs/report/*.aux
-docs/report/*.log
-docs/report/*.out
-docs/report/report.pdf
+track_2a/docs/report/*.aux
+track_2a/docs/report/*.log
+track_2a/docs/report/*.out
+track_2a/docs/report/report.pdf
 
 # Local reference material
-docs/challenge_docs/*
+track_2a/docs/challenge_docs/*

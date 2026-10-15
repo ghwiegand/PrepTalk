@@ -1,6 +1,8 @@
 # make run -> docker compose up --build: PostgreSQL + Redis + the coach API on port 2026 (Aegra).
 # The coach calls Apertus 1.5 8B at LLM_BASE_URL (OpenAI-compatible). With a GPU, `make run-gpu`
 # also starts Apertus itself (vLLM, profile "apertus").
+name: preptalk
+
 services:
   postgres:
     image: pgvector/pgvector:pg18
