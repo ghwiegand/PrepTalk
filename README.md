@@ -71,9 +71,14 @@ The first Docker build needs internet access to fetch FrameX and the challenge d
 client requires only Python 3 and also accepts options through Make:
 
 ```bash
+make chat ARGS="--lang it"
 make chat ARGS="--scenario S-01 --trace trace.html"
 make chat ARGS="--posting P-01 --lang fr --name Alex"
 ```
+
+The terminal displays its welcome locally in the selected language (German by default).
+It connects to the backend only after your first non-empty answer; pressing Enter immediately exits
+without creating a thread. The greeting text is shared with the backend in `src/coach/greetings.py`.
 
 Without a local GPU, point `LLM_BASE_URL` (and `LLM_API_KEY`) at a hosted endpoint running Swiss AI's vLLM image
 (`ghcr.io/swiss-ai/vllm_apertus_1.5_release`, e.g. a Hugging Face Inference Endpoint on one L4 GPU, as in our

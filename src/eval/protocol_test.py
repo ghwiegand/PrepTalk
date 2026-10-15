@@ -80,8 +80,9 @@ class H(BaseHTTPRequestHandler):
 
 threading.Thread(target=ThreadingHTTPServer(("127.0.0.1", PORT), H).serve_forever, daemon=True).start()
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from langchain_core.messages import HumanMessage, SystemMessage  # noqa: E402
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage  # noqa: E402
 import main  # noqa: E402
+from coach.greetings import ASK_JOB  # noqa: E402
 
 g = main.graph
 ANS = "Ich habe im Werken einen Kran gebaut und das Getriebe selbst berechnet."
@@ -111,6 +112,17 @@ def stateless(first, n=4):
     return out
 
 
+def locally_greeted(lang):
+    """The terminal already showed the greeting; its first request must start the interview."""
+    out = g.invoke({"messages": [AIMessage(ASK_JOB[lang]), HumanMessage(ANS)],
+                    "lang": lang, "setup_asked": True})
+    assert out["context"]["lang"] == lang
+    assert out["messages"][-1].content != ASK_JOB[lang], "setup greeting repeated"
+    assert out["coach"]["pending"], "interview did not start"
+    show(lang, out)
+    return out
+
+
 cases = {
     "1 stateful, scenario id": lambda: stateful([HumanMessage("Hallo")], {"scenario_id": "S-04"}),
     "2 stateless, scenario in system msg": lambda: stateless([SystemMessage("Szenario S-01"), HumanMessage("Hallo")]),
@@ -128,6 +140,9 @@ cases = {
     "8 unknown ids": lambda: stateful(
         [HumanMessage("Szenario S-99 P-77, ich möchte Koch werden, ich heisse Tim")], n=1
     ),
+    "9 local German greeting": lambda: locally_greeted("de"),
+    "10 local French greeting": lambda: locally_greeted("fr"),
+    "11 local Italian greeting": lambda: locally_greeted("it"),
 }
 failed = False
 for name, fn in cases.items():
