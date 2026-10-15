@@ -63,7 +63,7 @@ per candidate answer on average. The reported evaluation measured about 3.1 call
 
 FrameX is pre-existing MIT-licensed work from the Chair of Data Science and Natural Language
 Processing, University of St. Gallen. The dependency is pinned to
-`dee72c7fdfa4bcefe4eed5abbec8d457dd7f48e6`. PrepTalk's interview flow, adapters, rules and evaluation
+`fae782d15ab1fbc75dff066b176d38d2ae8fca35`. PrepTalk's interview flow, adapters, rules and evaluation
 code are project-specific. The detailed report documents four extensions contributed to FrameX
 during the hackathon.
 

@@ -8,7 +8,7 @@ Submission repository: [ghwiegand/PrepTalk](https://github.com/ghwiegand/PrepTal
 
 Team NLP-Lab: Götz-Henrik Wiegand (PhD student, University of St. Gallen). FrameX is pre-existing MIT-licensed
 work from the Chair of Data Science and Natural Language Processing, University of St. Gallen, used as a dependency
-(public repository [framex-core](https://gitlab.com/ds-unisg/framex-core), pinned commit `dee72c7`); see the
+(public repository [framex-core](https://gitlab.com/ds-unisg/framex-core), pinned commit `fae782d`); see the
 team, disclosure, and licence section of the [technical report](technical_report.md).
 
 ```mermaid
