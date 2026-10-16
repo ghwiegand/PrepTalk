@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import Mock, patch
 import wave
 
-from preptalk.cli import client, voice, voice_setup
+from preptalk.cli import client, menu, voice, voice_setup
 from preptalk.cli.terminal import TEXT, TerminalUI
 
 
@@ -52,6 +52,21 @@ class VoiceClientTest(unittest.TestCase):
             client.main()
         post.assert_not_called()
 
+    def test_voice_controls_appear_once_after_greeting_in_each_language(self):
+        for lang in TEXT:
+            audio = voice.VoiceIO.__new__(voice.VoiceIO)
+            audio.ui = TerminalUI(lang)
+            audio.speak = Mock(return_value=True)
+            with self.subTest(lang=lang), \
+                    patch("sys.argv", ["preptalk", "--no-menu", "--mode", "voice", "--lang", lang]), \
+                    patch.object(voice, "VoiceIO", return_value=audio), patch.object(voice, "KeyReader") as reader, \
+                    patch("builtins.input", return_value=""), patch.object(client, "post") as post, \
+                    contextlib.redirect_stdout(io.StringIO()) as output:
+                reader.return_value.__enter__.return_value.read.return_value = "enter"
+                client.main()
+                self.assertEqual(output.getvalue().count(TEXT[lang]["voice_controls"]), 1)
+                post.assert_not_called()
+
     def test_missing_voice_setup_returns_to_menu_without_connecting(self):
         with patch("sys.argv", ["preptalk"]), \
                 patch.object(client, "main_menu", side_effect=[(None, None, "de", "voice"), None]) as menu, \
@@ -63,6 +78,39 @@ class VoiceClientTest(unittest.TestCase):
         self.assertEqual(menu.call_count, 2)
         self.assertEqual(menu.call_args.args[-1], "chat")
         self.assertIn("make voice-setup", output.getvalue())
+
+    def test_voice_transition_keeps_one_screen_open_until_exit(self):
+        ui = TerminalUI("de")
+        ui.interactive = True
+        ui.color = False
+        with patch("sys.argv", ["preptalk", "--mode", "voice"]), \
+                patch.object(client, "TerminalUI", return_value=ui), patch.object(menu, "KeyReader") as reader, \
+                patch.object(voice, "VoiceIO") as audio, contextlib.redirect_stdout(io.StringIO()) as output:
+            reader.return_value.__enter__.return_value.read.side_effect = ["end", "enter"]
+
+            def answer():
+                self.assertTrue(ui.screen_active)
+                self.assertNotIn("\033[?1049l", output.getvalue())
+                return ""
+
+            audio.return_value.ask.side_effect = answer
+            client.main()
+        self.assertEqual(output.getvalue().count("\033[?1049h"), 1)
+        self.assertEqual(output.getvalue().count("\033[?1049l"), 1)
+        self.assertFalse(ui.screen_active)
+
+    def test_screen_is_restored_if_voice_fails(self):
+        ui = TerminalUI("de")
+        ui.interactive = True
+        with patch("sys.argv", ["preptalk", "--mode", "voice"]), \
+                patch.object(client, "TerminalUI", return_value=ui), patch.object(menu, "KeyReader") as reader, \
+                patch.object(voice, "VoiceIO") as audio, contextlib.redirect_stdout(io.StringIO()) as output:
+            reader.return_value.__enter__.return_value.read.side_effect = ["end", "enter"]
+            audio.return_value.ask.side_effect = RuntimeError("audio failed")
+            with self.assertRaises(RuntimeError):
+                client.main()
+        self.assertEqual(output.getvalue().count("\033[?1049l"), 1)
+        self.assertFalse(ui.screen_active)
 
 
 class VoiceTransportTest(unittest.TestCase):
@@ -154,11 +202,31 @@ class VoiceTransportTest(unittest.TestCase):
 
     def test_speech_uses_language_voice_and_text_is_not_a_command(self):
         audio = self.make_audio("fr")
+        process = Mock(returncode=0)
+        process.poll.return_value = 0
+        captured = {}
+
+        def start(command, **kwargs):
+            captured["text"] = kwargs["stdin"].read()
+            return process
+
         with patch.dict("os.environ", {}, clear=True), \
-                patch.object(voice.subprocess, "run", return_value=Mock(returncode=0)) as run:
+                patch.object(voice.subprocess, "Popen", side_effect=start) as launch, patch.object(voice, "KeyReader"):
             self.assertTrue(audio.speak("**Bonjour** [[volm 0]] [Alex](https://example.com)."))
-        self.assertEqual(run.call_args.args[0], ["/usr/bin/say", "-v", "Thomas", "-f", "-"])
-        self.assertEqual(run.call_args.kwargs["input"], "Bonjour  Alex.")
+        self.assertEqual(launch.call_args.args[0], ["/usr/bin/say", "-v", "Thomas", "-f", "-"])
+        self.assertEqual(captured["text"], "Bonjour  Alex.")
+
+    def test_escape_stops_reading_but_quit_ends_the_conversation(self):
+        for key, keep_chatting in (("back", True), ("quit", False)):
+            audio = self.make_audio()
+            process = Mock(returncode=-15)
+            process.poll.return_value = None
+            with self.subTest(key=key), patch.object(voice.subprocess, "Popen", return_value=process), \
+                    patch.object(voice, "KeyReader") as reader:
+                reader.return_value.__enter__.return_value.read.return_value = key
+                self.assertEqual(audio.speak("Hallo Alex."), keep_chatting)
+            process.terminate.assert_called_once()
+            process.wait.assert_called_once()
 
     def test_capture_error_allows_retry_or_typing(self):
         audio = self.make_audio()

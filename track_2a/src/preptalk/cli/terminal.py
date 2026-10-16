@@ -39,7 +39,7 @@ TEXT = {
         "voice_mic_waiting": "Warte auf Mikrofonsignal …",
         "voice_recorded": "Aufnahme beendet · Enter: zur Transkription senden · Esc: beenden",
         "voice_transcribing": "Deine Aufnahme wird transkribiert",
-        "voice_speaking": "Der Coach spricht · Ctrl-C: beenden",
+        "voice_speaking": "Der Coach spricht · Esc: Vorlesen stoppen · Ctrl-C: beenden",
         "voice_no_speech": "Keine Sprache erkannt. Versuche es nochmals oder drücke Enter zum Tippen.",
         "voice_error": "Voice-Fehler: {error}",
         "voice_unavailable": "Voice ist noch nicht bereit: {error}",
@@ -89,7 +89,7 @@ TEXT = {
         "voice_mic_waiting": "En attente du signal du microphone …",
         "voice_recorded": "Enregistrement terminé · Entrée : transcrire · Échap : quitter",
         "voice_transcribing": "Transcription de ton enregistrement",
-        "voice_speaking": "Le coach parle · Ctrl-C : quitter",
+        "voice_speaking": "Le coach parle · Échap : arrêter la lecture · Ctrl-C : quitter",
         "voice_no_speech": "Aucune parole reconnue. Réessaie ou appuie sur Entrée pour écrire.",
         "voice_error": "Erreur vocale : {error}",
         "voice_unavailable": "Le mode vocal n'est pas encore prêt : {error}",
@@ -139,7 +139,7 @@ TEXT = {
         "voice_mic_waiting": "In attesa del segnale del microfono …",
         "voice_recorded": "Registrazione terminata · Invio: trascrivi · Esc: esci",
         "voice_transcribing": "Trascrizione della registrazione",
-        "voice_speaking": "Il coach parla · Ctrl-C: esci",
+        "voice_speaking": "Il coach parla · Esc: interrompi la lettura · Ctrl-C: esci",
         "voice_no_speech": "Nessuna voce riconosciuta. Riprova o premi Invio per scrivere.",
         "voice_error": "Errore vocale: {error}",
         "voice_unavailable": "La modalità vocale non è ancora pronta: {error}",
@@ -166,6 +166,25 @@ class TerminalUI:
         self.lang = lang
         self.interactive = sys.stdout.isatty() and os.environ.get("TERM") != "dumb"
         self.color = self.interactive and "NO_COLOR" not in os.environ
+        self.screen_active = False
+
+    @contextmanager
+    def screen(self, enabled=True):
+        """Own one terminal screen across the menu and voice conversation."""
+        active = enabled and self.interactive
+        if active:
+            self.screen_active = True
+            print("\033[?1049h\033[?25l", end="", flush=True)
+        try:
+            yield
+        finally:
+            if active:
+                self.close_screen()
+
+    def close_screen(self):
+        if self.screen_active:
+            self.screen_active = False
+            print("\033[?25h\033[?1049l", end="", flush=True)
 
     @property
     def text(self):
@@ -200,12 +219,15 @@ class TerminalUI:
         print("  " + self.style("─" * (self.width - 2), "2"))
 
     def welcome(self, greeting, header=True, voice=False):
+        if self.screen_active:
+            print("\033[?25h\033[H\033[2J", end="", flush=True)
         if header:
             self.header()
         # Keep the setup question visually separate from the introduction in all three static greetings.
         intro, separator, question = greeting.rpartition(". ")
         self.message(f"{intro}.\n\n{question}" if separator else greeting)
-        self.body(self.text["voice_controls" if voice else "exit"], muted=True)
+        if not voice:
+            self.body(self.text["exit"], muted=True)
         print()
 
     def message(self, text):
@@ -218,6 +240,8 @@ class TerminalUI:
 
     def prompt(self, label):
         try:
+            if self.screen_active:
+                print("\033[?25h", end="", flush=True)
             return input("  " + self.style(label, "1") + "  " + self.style("›", "36") + " ")
         except (EOFError, KeyboardInterrupt):
             print()

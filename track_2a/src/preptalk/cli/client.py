@@ -33,6 +33,11 @@ def main():
     args = ap.parse_args()
     lang = args.lang or "de"
     ui = TerminalUI(lang)
+    with ui.screen(enabled=not args.no_menu):
+        run_chat(args, ui)
+
+
+def run_chat(args, ui):
     speech = None
     while True:
         if not args.no_menu:
@@ -54,6 +59,8 @@ def main():
                     return
                 continue
         break
+    if not speech:
+        ui.close_screen()  # Text chat keeps its ordinary terminal scrollback.
     greeting = ui.text["preset_greeting"] if args.scenario or args.posting else ASK_JOB[ui.lang]
     ui.welcome(greeting, voice=bool(speech))
     if speech and not speech.speak(greeting):

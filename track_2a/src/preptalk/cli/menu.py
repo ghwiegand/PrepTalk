@@ -1,6 +1,6 @@
 """Arrow-key main menu with inline, scrollable dropdowns. No model calls."""
 
-from contextlib import contextmanager, redirect_stdout
+from contextlib import redirect_stdout
 import io
 import shutil
 import textwrap
@@ -27,17 +27,6 @@ def label(kind, item, choices, lang):
         situation = dict(zip(SITUATION_KEYS, SITUATIONS[lang])).get(item["situation"], item["situation"])
         text = f"{situation} · {text} [{item['lang']}]"
     return text
-
-
-@contextmanager
-def screen(ui):
-    if ui.interactive:
-        print("\033[?1049h\033[?25l", end="", flush=True)
-    try:
-        yield
-    finally:
-        if ui.interactive:
-            print("\033[?25h\033[?1049l", end="", flush=True)
 
 
 def draw(ui, focus, scenario, posting, mode, choices, dropdown, cursor, status):
@@ -90,7 +79,7 @@ def draw(ui, focus, scenario, posting, mode, choices, dropdown, cursor, status):
 def main_menu(ui, scenario=None, posting=None, mode="chat"):
     choices, dropdown, status = None, None, ""
     focus, cursor = 0, 0
-    with screen(ui), KeyReader() as keyboard:
+    with KeyReader() as keyboard:
         try:
             while True:
                 draw(ui, focus, scenario, posting, mode, choices, dropdown, cursor, status)

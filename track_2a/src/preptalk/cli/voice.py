@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import wave
 
 from .keys import KeyReader
@@ -23,12 +24,20 @@ class VoiceError(Exception):
 
 def stop_process(process):
     if process.poll() is None:
-        process.terminate()
+        try:
+            process.terminate()
+        except ProcessLookupError:
+            process.wait()
+            return
         try:
             process.wait(timeout=3)
         except subprocess.TimeoutExpired:
-            process.kill()
-            process.wait()
+            try:
+                process.kill()
+            except ProcessLookupError:
+                pass
+            finally:
+                process.wait()
 
 
 def speech_text(text):
@@ -164,11 +173,28 @@ class VoiceIO:
     def speak(self, text):
         voice = os.environ.get("PREPTALK_TTS_VOICE") or self.voices.get(self.ui.lang)
         try:
-            with self.ui.waiting(self.ui.text["voice_speaking"]):
-                result = subprocess.run(["/usr/bin/say", "-v", voice, "-f", "-"], input=speech_text(text),
-                                        capture_output=True, text=True, timeout=300)
-            if result.returncode:
-                raise VoiceError(self.ui.text["voice_playback_error"])
+            if not voice:
+                raise VoiceError(self.ui.text["voice_missing_language"])
+            with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as source, tempfile.TemporaryFile() as errors:
+                source.write(speech_text(text))
+                source.seek(0)
+                process = subprocess.Popen(["/usr/bin/say", "-v", voice, "-f", "-"], stdin=source,
+                                           stdout=subprocess.DEVNULL, stderr=errors, start_new_session=True)
+                try:
+                    started = time.monotonic()
+                    with self.ui.waiting(self.ui.text["voice_speaking"]), KeyReader() as keyboard:
+                        while process.poll() is None:
+                            key = keyboard.read(timeout=0.1)
+                            if key == "back":  # Escape skips this reading, keeping the conversation alive.
+                                return True
+                            if key == "quit":
+                                return False
+                            if time.monotonic() - started > 300:
+                                raise VoiceError(self.ui.text["voice_playback_error"])
+                    if process.returncode:
+                        raise VoiceError(self.ui.text["voice_playback_error"])
+                finally:
+                    stop_process(process)
         except (VoiceError, OSError, subprocess.SubprocessError) as exc:
             self.ui.body(self.ui.text["voice_error"].format(error=str(exc)))
         except KeyboardInterrupt:

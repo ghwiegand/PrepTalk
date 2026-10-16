@@ -118,7 +118,9 @@ input levels, recording duration and dBFS. Its bars stay flat when the input is 
 Recordings are limited to two minutes; at the limit capture stops and waits for Enter before transcription.
 The transcript appears in the terminal, and the coach's
 reply is displayed and read aloud. Press **Enter** before recording to type an answer instead;
-**Escape** quits, and **Ctrl-C** stops speech playback and exits. Grant microphone access to your
+**Escape during playback** stops the current reading and lets you answer; the full response stays
+visible. Outside playback, Escape quits. **Ctrl-C** stops speech playback and exits. The menu and
+Voice conversation share one terminal screen, which is restored when you exit. Grant microphone access to your
 terminal application when macOS asks. If setup is incomplete, the client explains what is missing
 and returns to the menu. It does not start a backend conversation.
 
