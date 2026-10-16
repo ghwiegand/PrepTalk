@@ -87,7 +87,8 @@
 {\fontsize{24}{28}\selectfont\bfseries PrepTalk}\\[3pt]
 {\large An interview coach in which Apertus talks and judges, and a rule engine decides}\\[8pt]
 {\sffamily\small Team NLP-Lab \textperiodcentered{} Götz-Henrik Wiegand (PhD student, University of St.\,Gallen) \textperiodcentered{} Online\\[2pt]
-Code: \repository{} (public)\ifdefempty{\videolink}{}{ \textperiodcentered{} Demo: \videolink{}}}
+Code: \repository{} (public) \textperiodcentered{}
+\ifdefempty{\videolink}{Demo video: accompanying submission}{\href{\videolink}{Demo video}}}
 \end{tcolorbox}
 
 \vspace{2pt}
@@ -147,32 +148,37 @@ next action; Apertus supplies judgements and wording through an OpenAI-compatibl
 \end{center}
 
 \paragraph{Interview plan and state}
-FHGR's question bank supplies the six stages: introduction, motivation, strengths and weaknesses,
-situational questions, candidate questions and feedback. Six situations have tailored plans, usually 8--12
-main questions (phone calls: three), with occupation-specific and profile-conditional questions.
-Each turn replays recorded tool results without model calls, consumes the pending answer, then runs until
-another answer is needed. State is JSON in LangGraph checkpoints; turns within a process are serialized
-because FrameX's dialogue adapter uses shared globals.
+FHGR's question bank supplies six stages: introduction, motivation, strengths and weaknesses,
+situational questions, candidate questions and feedback. Six situations have tailored plans of usually
+8--12 main questions (phone calls: three), including occupation-specific and profile-conditional questions.
+Each turn replays recorded tool results without model calls, consumes the pending answer and continues
+until input is needed. JSON state lives in LangGraph checkpoints; shared FrameX globals require
+serialized turns within a process.
 
 \paragraph{Model roles and fallbacks}
-Apertus reacts, judges, answers as the company and fills feedback contents. A normal answer usually needs
-one guard call, one reaction and one judgement, including the relevant follow-up check. Pattern-matched
-guards avoid a call. Structured output uses \texttt{json\_schema}, with \texttt{json\_object} fallback for
-rejected schemas. Failed calls fall back to neutral wording, fixed questions or rule-based judgements.
-Company answers are checked against posting facts; Swiss training terms use a fixed glossary.
+Apertus reacts, judges, answers as the company and fills feedback contents. A normal answer costs a guard
+call, reaction and judgement with a follow-up check; pattern-matched guards avoid a call.
+\texttt{json\_schema} falls back to \texttt{json\_object} for rejected schemas. Failed calls use neutral
+wording, fixed questions or rule-based judgements. Company answers are checked against posting facts;
+Swiss training terms use a glossary.
 
 \paragraph{Coaching and voice}
-Guards pause for distress and refer to a trusted person; manipulation redirects to the pending question.
-An explicit feedback request ends early. Feedback contents are checked and assembled separately
-(Section~\ref{sec:feedback}). \texttt{voice: true} renders short spoken feedback without a table.
-The optional macOS client adds local Whisper base transcription via whisper.cpp and system-voice playback;
-this turn-based extension was not part of the reported evaluation.
+Distress pauses the interview with support and referral; manipulation redirects to the pending question.
+A feedback request ends early. Checked feedback (Section~\ref{sec:feedback}) can be rendered for speech
+with \texttt{voice: true}. An experimental macOS client adds local Whisper base transcription via
+whisper.cpp and system-voice playback; it was not part of the reported evaluation.
+
+\paragraph{User interface and demo}
+The terminal interface supports scenario, apprenticeship posting and language selection, followed by a
+guided interview with progress indicators. The
+\ifdefempty{\videolink}{accompanying demo video, submitted with this report,}{\href{\videolink}{accompanying demo video}}
+shows adaptive follow-ups, support for distress, resistance to manipulation, feedback with conversation
+evidence and an exported decision trace.
 
 \paragraph{Serving and data}
-\texttt{LLM\_BASE\_URL} selects an OpenAI-compatible Apertus endpoint. The GPU profile uses Swiss AI's vLLM
-image, bf16 and a 16,384-token context. FHGR questions, profiles, postings, scenarios and rubric are fetched
-at a pinned revision rather than redistributed. Evaluation candidates and companies are fictional;
-interactive conversation state is stored in the checkpoint database.
+\texttt{LLM\_BASE\_URL} selects the OpenAI-compatible Apertus endpoint. The GPU profile uses Swiss AI's
+vLLM image, bf16 and a 16,384-token context. FHGR data is fetched at a pinned revision rather than
+redistributed. Evaluation candidates and companies are fictional; interactive state is stored in checkpoints.
 
 % ================================================================ page 3: supplied rules comparison
 \clearpage

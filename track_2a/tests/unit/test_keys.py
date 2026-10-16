@@ -48,3 +48,32 @@ class KeyReaderTest(unittest.TestCase):
                 self.assert_restored(terminal, original)
         finally:
             os.close(master)
+
+    def test_text_editing_preserves_utf8_spaces_and_q(self):
+        master, slave = os.openpty()
+        try:
+            with os.fdopen(slave, "r") as terminal, patch("sys.stdin", terminal), KeyReader() as keyboard:
+                os.write(master, "q éü".encode("utf-8") + b"\x7f\x1b[D\x1b[3~\r")
+                keys = []
+                for _ in range(12):
+                    key = keyboard.read(timeout=0.1, text=True)
+                    if key:
+                        keys.append(key)
+                    if key == "enter":
+                        break
+                self.assertEqual(keys, ["q", " ", "é", "ü", "backspace", "left", "delete", "enter"])
+        finally:
+            os.close(master)
+
+    def test_switching_from_voice_controls_to_typing_keeps_buffered_input(self):
+        master, slave = os.openpty()
+        try:
+            with os.fdopen(slave, "r") as terminal, patch("sys.stdin", terminal):
+                with KeyReader() as keyboard:
+                    os.write(master, b"\rQuick answer\r")
+                    self.assertEqual(keyboard.read(), "enter")
+                with KeyReader() as keyboard:
+                    keys = [keyboard.read(timeout=0.1, text=True) for _ in range(13)]
+                self.assertEqual(keys, [*"Quick answer", "enter"])
+        finally:
+            os.close(master)

@@ -106,7 +106,6 @@ class VoiceIO:
             worker = threading.Thread(target=recorder.capture, args=(process.stdout, path), daemon=True)
             cancelled = False
             try:
-                self.ui.body(self.ui.text["voice_recording"])
                 worker.start()
                 with self.ui.microphone_meter() as draw, KeyReader() as keyboard:
                     while True:
@@ -142,10 +141,12 @@ class VoiceIO:
 
     def ask(self):
         while True:
-            self.ui.body(self.ui.text["voice_controls"], muted=True)
+            self.ui.voice_controls()
             with KeyReader() as keyboard:
-                while (key := keyboard.read()) not in ("space", "enter", "back", "quit"):
-                    pass
+                while (key := keyboard.read(timeout=0.1)) not in ("space", "enter", "back", "quit"):
+                    self.ui.navigate(key)
+                    self.ui.refresh()
+            self.ui.voice_controls(visible=False)
             if key in ("back", "quit"):
                 return ""
             if key == "enter":
@@ -182,9 +183,10 @@ class VoiceIO:
                                            stdout=subprocess.DEVNULL, stderr=errors, start_new_session=True)
                 try:
                     started = time.monotonic()
-                    with self.ui.waiting(self.ui.text["voice_speaking"]), KeyReader() as keyboard:
+                    with self.ui.waiting(self.ui.text["voice_speaking"], speaking=True), KeyReader() as keyboard:
                         while process.poll() is None:
                             key = keyboard.read(timeout=0.1)
+                            self.ui.navigate(key)
                             if key == "back":  # Escape skips this reading, keeping the conversation alive.
                                 return True
                             if key == "quit":

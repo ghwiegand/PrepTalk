@@ -2,6 +2,7 @@
 
 import contextlib
 import io
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -9,6 +10,7 @@ from unittest.mock import patch
 
 from preptalk.cli import catalog, client, menu
 from preptalk.cli.terminal import TEXT, TerminalUI
+from preptalk.coach.greetings import ASK_JOB
 
 
 POSTINGS = {
@@ -22,6 +24,49 @@ CHOICES = {"posting": POSTINGS, "scenario": {
 
 
 class MenuTest(unittest.TestCase):
+    def test_interactive_menu_keeps_coach_fixed_and_translates_before_chat(self):
+        ui = TerminalUI("de")
+        ui.interactive = True
+        ui.color = False
+        snapshots = []
+        keys = iter(["down", "down", "space", "down", "enter", "down", "space", "down", "enter",
+                     "end", "enter"])
+        with patch.object(menu, "KeyReader") as reader, patch.object(catalog, "load") as load, \
+                patch("shutil.get_terminal_size", return_value=os.terminal_size((80, 24))), \
+                contextlib.redirect_stdout(io.StringIO()) as output:
+
+            def read(**kwargs):
+                snapshots.append(ui.view._previous.copy())
+                return next(keys)
+
+            reader.return_value.__enter__.return_value.read.side_effect = read
+            self.assertEqual(menu.main_menu(ui), (None, None, "fr", "voice"))
+            old_view = ui.view
+            ui.welcome(ASK_JOB["fr"], voice=True)
+            self.assertIs(ui.view, old_view)
+            snapshots.append(ui.view._previous.copy())
+            positions = [next((row, line.index("| o   o |")) for row, line in enumerate(frame)
+                              if "| o   o |" in line) for frame in snapshots]
+            self.assertTrue(all(position == positions[0] for position in positions))
+            translated = "\n".join(snapshots[-2])
+            self.assertIn(TEXT["fr"]["main_menu"], translated)
+            self.assertIn(TEXT["fr"]["mode_voice"], translated)
+            self.assertNotIn(TEXT["de"]["main_menu"], translated)
+            self.assertTrue(all(len(line) < 80 for frame in snapshots for line in frame))
+            self.assertNotIn("\n", output.getvalue())
+        load.assert_not_called()
+
+    def test_interactive_long_dropdown_keeps_selected_item_visible(self):
+        ui = TerminalUI("de")
+        ui.interactive = True
+        ui.color = False
+        dropdown = [(None, ui.text["none"])] + [(key, key) for key in POSTINGS]
+        with patch("shutil.get_terminal_size", return_value=os.terminal_size((80, 24))), \
+                contextlib.redirect_stdout(io.StringIO()):
+            menu.draw(ui, 1, None, None, "chat", CHOICES, dropdown, 10, "")
+            self.assertIn("› P-10", "\n".join(ui.view._previous))
+            self.assertTrue(all(len(line) < 80 for line in ui.view._previous))
+
     def run_menu(self, keys, **kwargs):
         with patch.object(menu, "KeyReader") as reader, patch.object(catalog, "load", return_value=CHOICES), \
                 contextlib.redirect_stdout(io.StringIO()) as output:

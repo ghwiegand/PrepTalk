@@ -1,7 +1,5 @@
 """Arrow-key main menu with inline, scrollable dropdowns. No model calls."""
 
-from contextlib import redirect_stdout
-import io
 import shutil
 import textwrap
 
@@ -30,50 +28,52 @@ def label(kind, item, choices, lang):
 
 
 def draw(ui, focus, scenario, posting, mode, choices, dropdown, cursor, status):
-    """Compose one frame before writing, so navigating does not append scrolling menus."""
-    output = io.StringIO()
-    with redirect_stdout(output):
-        ui.header()
-        print()
-        ui.body(ui.text["main_menu"])
-        print()
-        for row, (title, value) in enumerate(((ui.text["scenario"], scenario or ui.text["none"]),
-                                             (ui.text["posting"], posting or ui.text["none"]),
-                                             (ui.text["menu_language"], ui.text["language"]),
-                                             (ui.text["menu_mode"], ui.text[f"mode_{mode}"]),
-                                             (ui.text["start_voice" if mode == "voice" else "start_chat"], None))):
-            if row == 4:
-                print()
-            marker = "›" if row == focus else " "
-            suffix = f"  {value}  {'▴' if dropdown and row == focus else '▾'}" if value is not None else ""
-            if row < 2 and choices and (scenario if row == 0 else posting):
-                kind, key = ("scenario", scenario) if row == 0 else ("posting", posting)
-                item = choices[kind].get(key)
-                if item:
-                    suffix = f"  {key} · {label(kind, item, choices, ui.lang)}  ▾"
-            line = textwrap.shorten(f"{title}{suffix}", width=ui.width - 4, placeholder="…")
-            print("  " + ui.style(f"{marker} {line}", "1;36" if row == focus else "0"))
-            if dropdown and row == focus:
-                capacity = max(3, min(8, shutil.get_terminal_size().lines - 21))
-                start = max(0, min(cursor - capacity // 2, len(dropdown) - capacity))
-                box_width = ui.width - 6
-                print("    ┌" + "─" * box_width + "┐")
-                selected = (scenario, posting, ui.lang, mode)[row]
-                for index in range(start, min(start + capacity, len(dropdown))):
-                    key, title = dropdown[index]
-                    marker = "›" if index == cursor else " "
-                    check = " ✓" if key == selected else ""
-                    line = textwrap.shorten(f"{title}{check}", width=box_width - 4, placeholder="…")
-                    line = "    │ " + f"{marker} {line}".ljust(box_width - 2) + " │"
-                    print(ui.style(line, "1;36") if index == cursor else line)
-                print("    └" + "─" * box_width + "┘")
-                ui.body(f"{cursor + 1}/{len(dropdown)}", muted=True)
-        print()
-        if dropdown and focus == 0:
-            ui.body(ui.text["scenario_hint"], muted=True)
-        ui.body(status or ui.text["dropdown_help" if dropdown else "menu_help"], muted=True)
-    prefix = "\033[?25l\033[H\033[2J" if ui.interactive else ""
-    print(prefix + output.getvalue(), end="", flush=True)
+    """Compose menu content inside the same fixed panes used by the conversation."""
+    if ui.interactive:
+        ui.ensure_view()
+    rows = [(ui.text["main_menu"], "1"), ("", None)]
+    focus_line = 0
+    settings = ((ui.text["scenario"], scenario or ui.text["none"]),
+                (ui.text["posting"], posting or ui.text["none"]),
+                (ui.text["menu_language"], ui.text["language"]),
+                (ui.text["menu_mode"], ui.text[f"mode_{mode}"]),
+                (ui.text["start_voice" if mode == "voice" else "start_chat"], None))
+    for row, (title, value) in enumerate(settings):
+        if row == 4:
+            rows.append(("", None))
+        marker = "›" if row == focus else " "
+        suffix = f"  {value}  {'▴' if dropdown and row == focus else '▾'}" if value is not None else ""
+        if row < 2 and choices and (scenario if row == 0 else posting):
+            kind, key = ("scenario", scenario) if row == 0 else ("posting", posting)
+            item = choices[kind].get(key)
+            if item:
+                suffix = f"  {key} · {label(kind, item, choices, ui.lang)}  ▾"
+        line = textwrap.shorten(f"{title}{suffix}", width=max(2, ui.width - 6), placeholder="…")
+        if row == focus:
+            focus_line = len(rows)
+        rows.append((f"{marker} {line}", "1;36" if row == focus else None))
+        if dropdown and row == focus:
+            capacity = max(1, min(8, shutil.get_terminal_size().lines - 21))
+            start = max(0, min(cursor - capacity // 2, len(dropdown) - capacity))
+            box_width = max(6, ui.width - 8)
+            rows.append(("  ┌" + "─" * box_width + "┐", None))
+            selected = (scenario, posting, ui.lang, mode)[row]
+            for index in range(start, min(start + capacity, len(dropdown))):
+                key, title = dropdown[index]
+                marker = "›" if index == cursor else " "
+                check = " ✓" if key == selected else ""
+                line = textwrap.shorten(f"{title}{check}", width=max(2, box_width - 4), placeholder="…")
+                line = "  │ " + f"{marker} {line}".ljust(box_width - 2) + " │"
+                if index == cursor:
+                    focus_line = len(rows)
+                rows.append((line, "1;36" if index == cursor else None))
+            rows.append(("  └" + "─" * box_width + "┘", None))
+            rows.append((f"{cursor + 1}/{len(dropdown)}", "2"))
+    footer = []
+    if dropdown and focus == 0:
+        footer.append((ui.text["scenario_hint"], "2"))
+    footer.append((status or ui.text["dropdown_help" if dropdown else "menu_help"], "2"))
+    ui.menu(rows, footer, focus_line)
 
 
 def main_menu(ui, scenario=None, posting=None, mode="chat"):
@@ -83,7 +83,7 @@ def main_menu(ui, scenario=None, posting=None, mode="chat"):
         try:
             while True:
                 draw(ui, focus, scenario, posting, mode, choices, dropdown, cursor, status)
-                key = keyboard.read()
+                key = keyboard.read(timeout=0.1)
                 if key == "quit":
                     return None
                 if key == "back":
