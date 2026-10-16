@@ -7,6 +7,54 @@ An Apertus-based coach for Swiss apprenticeship interviews in German, French and
 The submission project lives in [`track_2a/`](track_2a/), following the
 [organizers' repository template](https://github.com/HackApertus/project-template).
 
+## Quickstart: terminal demo
+
+Install **Docker with Docker Compose v2** (Docker Desktop on macOS/Windows, or Docker Engine with
+the Compose plugin on Linux), **Python 3.12+**, **Git** and **Make**. Start Docker before continuing.
+The TUI uses only Python's standard library; `uv sync` is not needed for this demo.
+
+1. Clone the repository and create the configuration on first setup (private-repository access is required):
+
+   ```bash
+   git clone https://github.com/ghwiegand/PrepTalk.git
+   cd PrepTalk
+   cp track_2a/.env.example track_2a/.env
+   ```
+
+2. Edit `track_2a/.env`: set `LLM_BASE_URL` to a running Apertus OpenAI-compatible endpoint ending
+   in `/v1`, `LLM_NAME` to its served model name, and `LLM_API_KEY` if required. For a model running
+   on the same computer outside Docker, the example uses `http://host.docker.internal:8000/v1`.
+   **`make run` starts the coach API and databases; you must provide the model endpoint separately.**
+   A remote endpoint lets you run the demo without a local GPU. For local NVIDIA inference, see
+   [`make run-gpu`](track_2a/README.md#run-it).
+
+3. Start the backend from the repository root and wait until the coach API is ready on port 2026
+   (the first build downloads dependencies and challenge data):
+
+   ```bash
+   make run
+   ```
+
+4. In a second terminal, open the same repository directory and start the TUI:
+
+   ```bash
+   make chat
+   # Optional: start with French selected
+   make chat ARGS="--lang fr"
+   ```
+
+Use ↑/↓ to navigate, Space/Enter to open or confirm selections, then select **Start chat**.
+Scenario and posting can stay unselected. Type an answer and press Enter to send it; Escape at
+the text prompt offers a Yes/No confirmation to return to the menu. Empty input + Enter exits.
+Run `make stop` to stop the backend. The menu and greeting can be previewed without the backend;
+the first submitted answer needs the API and model endpoint.
+
+Voice is optional and currently macOS-only: install **CMake** and **FFmpeg**, plus the macOS
+command-line build tools, run `make voice-setup`, then choose **Voice (experimental)** in the menu.
+See the [voice setup and controls](track_2a/README.md#run-it) for details.
+
+## Repository contents
+
 | Entry point | Contents |
 | --- | --- |
 | [Project README](track_2a/README.md) | Setup, API, architecture, testing and evaluation commands |

@@ -6,6 +6,30 @@ talking and the judging; a small rule engine, [FrameX](https://gitlab.com/ds-uni
 
 Submission repository: [ghwiegand/PrepTalk](https://github.com/ghwiegand/PrepTalk) (currently private).
 
+## Quickstart: TUI demo
+
+- Install **Docker with Compose v2** (Docker Desktop, or Docker Engine with the Compose plugin),
+  **Python 3.12+**, **Git** and **Make**, and start Docker.
+- Have a running **Apertus OpenAI-compatible endpoint** available. `make run` starts the coach and
+  databases; it does not start the model. A remote endpoint needs no local GPU.
+- From this directory (`track_2a/`), create the configuration once:
+
+  ```bash
+  cp .env.example .env
+  ```
+
+  Edit `.env` to set `LLM_BASE_URL` (ending in `/v1`), `LLM_NAME` and, if needed, `LLM_API_KEY`.
+  Then run `make run` and wait for the coach API to be ready on port 2026. The first build needs
+  internet access to download dependencies and challenge data.
+- In a second terminal, open `track_2a/` and run **`make chat`**. No local Python dependency
+  installation is needed for the TUI. Choose language and optional presets with ↑/↓ and Space/Enter,
+  then select **Start chat**. Enter sends your answer; Escape offers a Yes/No return-to-menu
+  confirmation. Empty input + Enter exits. Stop the backend with `make stop`.
+
+For French, use `make chat ARGS="--lang fr"`; Italian uses `--lang it`. Voice is optional and
+requires additional macOS tools; see [Run it](#run-it) below for voice setup, local NVIDIA model
+hosting, and configuration details.
+
 Team NLP-Lab: Götz-Henrik Wiegand (PhD student, University of St. Gallen). FrameX is pre-existing MIT-licensed
 work from the Chair of Data Science and Natural Language Processing, University of St. Gallen, used as a dependency
 (public repository [framex-core](https://gitlab.com/ds-unisg/framex-core), pinned commit `fae782d`); see the

@@ -321,7 +321,7 @@ class LayoutTest(unittest.TestCase):
                         if key == cancel and ui.view.confirmation is not None:
                             self.assertFalse(ui.view.confirmation)  # No is the default.
                             self.assertFalse(ui.view._cursor)
-                            rendered = " ".join(" ".join(frame(ui)).split())
+                            rendered = " ".join(" ".join(line.partition("│")[0] for line in frame(ui)).split())
                             self.assertIn(ui.text["leave_question"], rendered)
                             self.assertIn("› " + ui.text["no"], rendered)
                             self.assertIn(ui.text["yes"], rendered)
