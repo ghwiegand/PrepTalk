@@ -1,4 +1,4 @@
-.PHONY: run run-gpu stop chat eval report lint check test test-unit test-integration test-docker
+.PHONY: run run-gpu stop chat voice-setup eval report lint check test test-unit test-integration test-docker
 
 SCENARIOS ?= S-01 S-04 S-05
 ARGS ?=
@@ -21,6 +21,10 @@ stop:
 # Talk to the running coach in the terminal (needs Python 3 on the host, standard library only).
 chat:
 	@$(PYTHON) -m preptalk.cli $(ARGS)
+
+# Optional local macOS voice tools/model; text chat needs none of these assets.
+voice-setup:
+	@$(PYTHON) -m preptalk.cli.voice_setup
 
 # Simulated interviews on FHGR scenarios (inside the container; simulator Gemini Flash, GOOGLE_API_KEY in .env).
 eval:

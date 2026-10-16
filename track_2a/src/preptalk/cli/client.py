@@ -5,6 +5,7 @@
 """
 import argparse
 import json
+import subprocess
 import urllib.request
 
 from preptalk.coach.greetings import ASK_JOB
@@ -26,20 +27,39 @@ def main():
     presets.add_argument("--scenario")
     ap.add_argument("--lang", choices=ASK_JOB)
     ap.add_argument("--name")
+    ap.add_argument("--mode", choices=("chat", "voice"), default="chat", help="voice is experimental and runs on macOS")
     ap.add_argument("--no-menu", action="store_true", help="start the chat directly, using command-line options")
     ap.add_argument("--trace", help="write the decision trace as HTML to this file when the interview ends")
     args = ap.parse_args()
     lang = args.lang or "de"
     ui = TerminalUI(lang)
-    if not args.no_menu:
-        selection = main_menu(ui, args.scenario, args.posting)
-        if selection is None:
-            ui.goodbye()
-            return
-        args.scenario, args.posting, args.lang = selection
+    speech = None
+    while True:
+        if not args.no_menu:
+            selection = main_menu(ui, args.scenario, args.posting, args.mode)
+            if selection is None:
+                ui.goodbye()
+                return
+            args.scenario, args.posting, args.lang, args.mode = selection
+        if args.mode == "voice":
+            from .voice import VoiceError, VoiceIO
+            try:
+                speech = VoiceIO(ui)
+            except (VoiceError, OSError, subprocess.SubprocessError) as exc:
+                ui.body(ui.text["voice_unavailable"].format(error=str(exc)))
+                if args.no_menu:
+                    return
+                args.mode = "chat"
+                if ui.prompt(ui.text["voice_return"]) is None:
+                    return
+                continue
+        break
     greeting = ui.text["preset_greeting"] if args.scenario or args.posting else ASK_JOB[ui.lang]
-    ui.welcome(greeting)
-    text = ui.ask()
+    ui.welcome(greeting, voice=bool(speech))
+    if speech and not speech.speak(greeting):
+        ui.goodbye()
+        return
+    text = speech.ask() if speech else ui.ask()
     if not text.strip():
         ui.goodbye()
         return
@@ -49,6 +69,8 @@ def main():
     thread = None
     extra = {k: v for k, v in (("posting_id", args.posting), ("scenario_id", args.scenario),
                                 ("lang", args.lang), ("name", args.name)) if v}
+    if speech:
+        extra.update(voice=True, lang=ui.lang)
     turn = {"messages": [{"role": "assistant", "content": greeting},
                          {"role": "user", "content": text}], "setup_asked": True, **extra}
     while True:
@@ -63,6 +85,9 @@ def main():
             ui.message(messages[-1].get("content", ""))
         coach = (state or {}).get("coach") or {}
         ui.progress(coach.get("progress"))
+        if speech and messages and not speech.speak(messages[-1].get("content", "")):
+            ui.goodbye()
+            break
         if coach.get("done"):
             if args.trace:
                 import os
@@ -74,7 +99,7 @@ def main():
                     f.write(trace.render(run))
                 ui.trace(os.path.abspath(args.trace))
             break
-        text = ui.ask()
+        text = speech.ask() if speech else ui.ask()
         if not text.strip():
             ui.goodbye()
             break

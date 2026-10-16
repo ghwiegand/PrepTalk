@@ -24,7 +24,7 @@ class KeyReader:
 
             termios.tcsetattr(self.fd, termios.TCSADRAIN, self.saved)
 
-    def read(self):
+    def read(self, timeout=None):
         try:
             if os.name == "nt":
                 import msvcrt
@@ -34,6 +34,8 @@ class KeyReader:
                     return {"H": "up", "P": "down", "K": "back", "M": "right", "G": "home", "O": "end",
                             "I": "page_up", "Q": "page_down"}.get(msvcrt.getwch(), "")
             else:
+                if timeout is not None and not select.select([self.fd], [], [], timeout)[0]:
+                    return ""
                 char = os.read(self.fd, 1).decode("ascii", errors="ignore")
             if not char or char in ("\x03", "\x04", "q", "Q"):
                 return "quit"

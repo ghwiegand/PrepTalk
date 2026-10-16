@@ -40,7 +40,7 @@ def screen(ui):
             print("\033[?25h\033[?1049l", end="", flush=True)
 
 
-def draw(ui, focus, scenario, posting, choices, dropdown, cursor, status):
+def draw(ui, focus, scenario, posting, mode, choices, dropdown, cursor, status):
     """Compose one frame before writing, so navigating does not append scrolling menus."""
     output = io.StringIO()
     with redirect_stdout(output):
@@ -51,8 +51,9 @@ def draw(ui, focus, scenario, posting, choices, dropdown, cursor, status):
         for row, (title, value) in enumerate(((ui.text["scenario"], scenario or ui.text["none"]),
                                              (ui.text["posting"], posting or ui.text["none"]),
                                              (ui.text["menu_language"], ui.text["language"]),
-                                             (ui.text["start_chat"], None))):
-            if row == 3:
+                                             (ui.text["menu_mode"], ui.text[f"mode_{mode}"]),
+                                             (ui.text["start_voice" if mode == "voice" else "start_chat"], None))):
+            if row == 4:
                 print()
             marker = "›" if row == focus else " "
             suffix = f"  {value}  {'▴' if dropdown and row == focus else '▾'}" if value is not None else ""
@@ -64,11 +65,11 @@ def draw(ui, focus, scenario, posting, choices, dropdown, cursor, status):
             line = textwrap.shorten(f"{title}{suffix}", width=ui.width - 4, placeholder="…")
             print("  " + ui.style(f"{marker} {line}", "1;36" if row == focus else "0"))
             if dropdown and row == focus:
-                capacity = max(3, min(8, shutil.get_terminal_size().lines - 20))
+                capacity = max(3, min(8, shutil.get_terminal_size().lines - 21))
                 start = max(0, min(cursor - capacity // 2, len(dropdown) - capacity))
                 box_width = ui.width - 6
                 print("    ┌" + "─" * box_width + "┐")
-                selected = (scenario, posting, ui.lang)[row]
+                selected = (scenario, posting, ui.lang, mode)[row]
                 for index in range(start, min(start + capacity, len(dropdown))):
                     key, title = dropdown[index]
                     marker = "›" if index == cursor else " "
@@ -86,13 +87,13 @@ def draw(ui, focus, scenario, posting, choices, dropdown, cursor, status):
     print(prefix + output.getvalue(), end="", flush=True)
 
 
-def main_menu(ui, scenario=None, posting=None):
+def main_menu(ui, scenario=None, posting=None, mode="chat"):
     choices, dropdown, status = None, None, ""
     focus, cursor = 0, 0
     with screen(ui), KeyReader() as keyboard:
         try:
             while True:
-                draw(ui, focus, scenario, posting, choices, dropdown, cursor, status)
+                draw(ui, focus, scenario, posting, mode, choices, dropdown, cursor, status)
                 key = keyboard.read()
                 if key == "quit":
                     return None
@@ -102,7 +103,7 @@ def main_menu(ui, scenario=None, posting=None):
                         continue
                     return None
                 status = ""
-                size = len(dropdown) if dropdown else 4
+                size = len(dropdown) if dropdown else 5
                 position = cursor if dropdown else focus
                 if key in ("up", "down", "home", "end", "page_up", "page_down"):
                     if key in ("up", "down"):
@@ -126,18 +127,23 @@ def main_menu(ui, scenario=None, posting=None):
                             posting = selected
                             if selected:
                                 scenario = None
-                        else:
+                        elif focus == 2:
                             ui.lang = selected
+                        else:
+                            mode = selected
                         dropdown = None
-                    elif focus == 3:
-                        return scenario, posting, ui.lang
+                    elif focus == 4:
+                        return scenario, posting, ui.lang, mode
                     else:
                         if focus == 2:
                             dropdown = list(LANGUAGES)
                             selected = ui.lang
+                        elif focus == 3:
+                            dropdown = [(value, ui.text[f"mode_{value}"]) for value in ("chat", "voice")]
+                            selected = mode
                         else:
                             if choices is None:
-                                draw(ui, focus, scenario, posting, choices, None, 0, ui.text["loading_choices"])
+                                draw(ui, focus, scenario, posting, mode, choices, None, 0, ui.text["loading_choices"])
                                 try:
                                     choices = catalog.load()
                                 except (OSError, ValueError, KeyError):

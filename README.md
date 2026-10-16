@@ -49,14 +49,18 @@ make stop         # stop the stack, retaining database volumes
 
 The root Makefile forwards commands to `track_2a/`. You can also `cd track_2a` and run them there.
 Options still work, for example `make chat ARGS="--lang fr"`.
-The menu selects a scenario, posting and language; both presets default to none. Changing the
+The menu selects a scenario, posting, language and mode; both presets default to none and Chat is
+the default mode. Changing the
 language translates the menu immediately. Use ↑/↓ to navigate and Space to open dropdowns.
 Select **Start chat** at the bottom and press Enter; Escape quits the menu.
+Experimental Voice mode runs locally on macOS. Its one-time setup is `make voice-setup`; then select
+Voice in the menu. It uses local Whisper transcription and macOS speech playback, with no speech API credits.
+See the [project README](track_2a/README.md) for prerequisites and recording controls.
 For local Python dependency installation, run `uv sync --locked` inside `track_2a/`.
 
-`make report` builds `track_2a/NLP-Lab_Report.pdf` from the detailed LaTeX sources. The submission
-form requires a PDF of at most six pages; the existing detailed report must still be shortened
-before it is uploaded. The Markdown report above is the repository's required report entry point.
+`make report` builds the six-page submission report at
+[`track_2a/NLP-Lab_Report.pdf`](track_2a/NLP-Lab_Report.pdf) from the LaTeX sources.
+The Markdown report above is the repository's required report entry point.
 
 Code is licensed under [Apache 2.0](LICENSE). Project-authored documentation and the report are
 licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).

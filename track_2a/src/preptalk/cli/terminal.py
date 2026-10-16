@@ -29,6 +29,28 @@ TEXT = {
         "posting": "Lehrstelle",
         "none": "Keine Auswahl",
         "start_chat": "Chat starten",
+        "start_voice": "Voice starten",
+        "menu_mode": "Modus",
+        "mode_chat": "Chat",
+        "mode_voice": "Voice (experimentell)",
+        "voice_controls": "Leertaste: Aufnahme starten · Enter: tippen · Esc: beenden",
+        "voice_recording": "● Aufnahme läuft · Enter: zur Transkription senden · Esc: beenden · maximal 2 Minuten",
+        "voice_input": "Mikrofon",
+        "voice_mic_waiting": "Warte auf Mikrofonsignal …",
+        "voice_recorded": "Aufnahme beendet · Enter: zur Transkription senden · Esc: beenden",
+        "voice_transcribing": "Deine Aufnahme wird transkribiert",
+        "voice_speaking": "Der Coach spricht · Ctrl-C: beenden",
+        "voice_no_speech": "Keine Sprache erkannt. Versuche es nochmals oder drücke Enter zum Tippen.",
+        "voice_error": "Voice-Fehler: {error}",
+        "voice_unavailable": "Voice ist noch nicht bereit: {error}",
+        "voice_return": "Enter: zurück zum Menü",
+        "voice_mac_only": "Die experimentelle Voice-Version läuft derzeit lokal auf macOS.",
+        "voice_setup": "Führe einmal make voice-setup aus. FFmpeg, whisper-cli und das Whisper-Modell müssen vorhanden sein.",
+        "voice_terminal": "Voice benötigt ein interaktives Terminal.",
+        "voice_missing_language": "Installiere eine macOS-Systemstimme für die ausgewählte Sprache.",
+        "voice_transcription_error": "Die Transkription ist fehlgeschlagen. Prüfe das Whisper-Modell.",
+        "voice_recording_error": "Die Aufnahme ist fehlgeschlagen. Prüfe Mikrofonfreigabe und PREPTALK_MIC_DEVICE.",
+        "voice_playback_error": "Die Sprachausgabe ist fehlgeschlagen. Die Antwort steht weiterhin im Chat.",
         "menu_help": "↑/↓ Navigieren · Leertaste/Enter Öffnen oder starten · Esc Beenden",
         "dropdown_help": "↑/↓ Auswählen · Leertaste/Enter Bestätigen · Esc Zurück",
         "loading_choices": "Auswahl wird geladen",
@@ -57,6 +79,28 @@ TEXT = {
         "posting": "Offre d'apprentissage",
         "none": "Aucune sélection",
         "start_chat": "Démarrer le chat",
+        "start_voice": "Démarrer la voix",
+        "menu_mode": "Mode",
+        "mode_chat": "Chat",
+        "mode_voice": "Voix (expérimental)",
+        "voice_controls": "Espace : enregistrer · Entrée : écrire · Échap : quitter",
+        "voice_recording": "● Enregistrement · Entrée : envoyer pour transcription · Échap : quitter · maximum 2 minutes",
+        "voice_input": "Microphone",
+        "voice_mic_waiting": "En attente du signal du microphone …",
+        "voice_recorded": "Enregistrement terminé · Entrée : transcrire · Échap : quitter",
+        "voice_transcribing": "Transcription de ton enregistrement",
+        "voice_speaking": "Le coach parle · Ctrl-C : quitter",
+        "voice_no_speech": "Aucune parole reconnue. Réessaie ou appuie sur Entrée pour écrire.",
+        "voice_error": "Erreur vocale : {error}",
+        "voice_unavailable": "Le mode vocal n'est pas encore prêt : {error}",
+        "voice_return": "Entrée : retour au menu",
+        "voice_mac_only": "Cette version vocale expérimentale fonctionne actuellement en local sur macOS.",
+        "voice_setup": "Lance une fois make voice-setup. FFmpeg, whisper-cli et le modèle Whisper sont nécessaires.",
+        "voice_terminal": "Le mode vocal nécessite un terminal interactif.",
+        "voice_missing_language": "Installe une voix système macOS pour la langue sélectionnée.",
+        "voice_transcription_error": "La transcription a échoué. Vérifie le modèle Whisper.",
+        "voice_recording_error": "L'enregistrement a échoué. Vérifie l'accès au microphone et PREPTALK_MIC_DEVICE.",
+        "voice_playback_error": "La lecture vocale a échoué. La réponse reste visible dans le chat.",
         "menu_help": "↑/↓ Naviguer · Espace/Entrée Ouvrir ou démarrer · Échap Quitter",
         "dropdown_help": "↑/↓ Choisir · Espace/Entrée Confirmer · Échap Retour",
         "loading_choices": "Chargement des choix",
@@ -85,6 +129,28 @@ TEXT = {
         "posting": "Offerta di tirocinio",
         "none": "Nessuna selezione",
         "start_chat": "Avvia la chat",
+        "start_voice": "Avvia la voce",
+        "menu_mode": "Modalità",
+        "mode_chat": "Chat",
+        "mode_voice": "Voce (sperimentale)",
+        "voice_controls": "Spazio: registra · Invio: scrivi · Esc: esci",
+        "voice_recording": "● Registrazione · Invio: invia alla trascrizione · Esc: esci · massimo 2 minuti",
+        "voice_input": "Microfono",
+        "voice_mic_waiting": "In attesa del segnale del microfono …",
+        "voice_recorded": "Registrazione terminata · Invio: trascrivi · Esc: esci",
+        "voice_transcribing": "Trascrizione della registrazione",
+        "voice_speaking": "Il coach parla · Ctrl-C: esci",
+        "voice_no_speech": "Nessuna voce riconosciuta. Riprova o premi Invio per scrivere.",
+        "voice_error": "Errore vocale: {error}",
+        "voice_unavailable": "La modalità vocale non è ancora pronta: {error}",
+        "voice_return": "Invio: torna al menu",
+        "voice_mac_only": "Questa versione vocale sperimentale funziona attualmente in locale su macOS.",
+        "voice_setup": "Esegui una volta make voice-setup. Servono FFmpeg, whisper-cli e il modello Whisper.",
+        "voice_terminal": "La modalità vocale richiede un terminale interattivo.",
+        "voice_missing_language": "Installa una voce di sistema macOS per la lingua selezionata.",
+        "voice_transcription_error": "Trascrizione non riuscita. Controlla il modello Whisper.",
+        "voice_recording_error": "Registrazione non riuscita. Controlla l'accesso al microfono e PREPTALK_MIC_DEVICE.",
+        "voice_playback_error": "Riproduzione vocale non riuscita. La risposta resta visibile nella chat.",
         "menu_help": "↑/↓ Naviga · Spazio/Invio Apri o avvia · Esc Esci",
         "dropdown_help": "↑/↓ Scegli · Spazio/Invio Conferma · Esc Indietro",
         "loading_choices": "Caricamento delle opzioni",
@@ -133,13 +199,13 @@ class TerminalUI:
         self.body(self.text["tagline"], muted=True)
         print("  " + self.style("─" * (self.width - 2), "2"))
 
-    def welcome(self, greeting, header=True):
+    def welcome(self, greeting, header=True, voice=False):
         if header:
             self.header()
         # Keep the setup question visually separate from the introduction in all three static greetings.
         intro, separator, question = greeting.rpartition(". ")
         self.message(f"{intro}.\n\n{question}" if separator else greeting)
-        self.body(self.text["exit"], muted=True)
+        self.body(self.text["voice_controls" if voice else "exit"], muted=True)
         print()
 
     def message(self, text):
@@ -173,6 +239,44 @@ class TerminalUI:
         if phase == "interview" and progress.get("follow_up"):
             self.body(self.text["follow_up"], muted=True)
         print()
+
+    @contextmanager
+    def microphone_meter(self):
+        """Show recent measured input levels as moving bars, with no fabricated animation."""
+        previous_lines = 0
+
+        def draw(levels, seconds, db, finished=False):
+            nonlocal previous_lines
+            if not self.interactive:
+                return
+            columns = min(24, max(1, (self.width - 6) // 2))
+            levels = ([0] * columns + levels)[-columns:]
+            glyphs = " ▁▂▃▄▅▆▇█"
+            clock = f"{int(seconds) // 60:02}:{int(seconds) % 60:02}"
+            decibels = f"{db:.0f}" if db != float("-inf") else "−∞"
+            lines = [f"  {self.text['voice_input']}  {clock}  {decibels} dBFS"]
+            color = "31" if db > -3 else "36"
+            for row in range(3, -1, -1):
+                bars = " ".join(glyphs[max(0, min(8, round(level * 32) - row * 8))] for level in levels)
+                lines.append("  " + self.style(bars, color))
+            if finished:
+                status = self.text["voice_recorded"]
+            elif seconds == 0:
+                status = self.text["voice_mic_waiting"]
+            else:
+                status = self.text["voice_recording"]
+            lines.extend(textwrap.wrap(status, width=self.width, initial_indent="  ", subsequent_indent="  "))
+            prefix = f"\033[{previous_lines}F" if previous_lines else ""
+            print(prefix + "\033[0J" + "\n".join(lines), flush=True)
+            previous_lines = len(lines)
+
+        if self.interactive:
+            print("\033[?25l", end="", flush=True)
+        try:
+            yield draw
+        finally:
+            if self.interactive:
+                print("\033[?25h", end="", flush=True)
 
     @contextmanager
     def waiting(self, label=None):

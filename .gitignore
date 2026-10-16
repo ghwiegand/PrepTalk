@@ -3,6 +3,7 @@
 .env.*
 !.env.example
 .venv/
+.voice/
 
 # Generated files and local tooling
 __pycache__/

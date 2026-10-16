@@ -80,7 +80,7 @@ make chat ARGS="--scenario S-01 --trace trace.html"
 make chat ARGS="--posting P-01 --lang fr --name Alex"
 ```
 
-`make chat` opens a main menu. Use ↑/↓ to move between scenario, posting, language and **Start chat**.
+`make chat` opens a main menu. Use ↑/↓ to move between scenario, posting, language, mode and **Start chat**.
 Space or Enter opens an inline dropdown; use ↑/↓ to browse and Space or Enter to confirm. Long lists
 scroll automatically. Escape closes a dropdown without changing its value, or exits the main menu.
 Scenario and posting default to no selection; choose the first dropdown item to clear a preset.
@@ -90,6 +90,53 @@ the other preset. Command-line options preselect these menu settings.
 The language selector immediately translates the menu and sets the interview language (German by
 default, French and Italian available). `--lang` sets its initial value. Use `--no-menu` to start
 directly with the command-line settings, e.g. `make chat ARGS="--no-menu --lang fr"`.
+
+The mode selector defaults to **Chat**. **Voice (experimental)** adds local microphone recording,
+transcription and spoken replies on macOS. It uses the same Docker-hosted coach API; audio handling
+runs on the Mac, where the microphone and speakers are available. Text chat requires no voice tools.
+
+For the optional voice setup, install CMake and FFmpeg if missing (`brew install cmake ffmpeg`);
+Git and the macOS command-line build tools are also required. Then run:
+
+```bash
+make voice-setup
+make chat
+# Or preselect the experimental mode:
+make chat ARGS="--mode voice --lang fr"
+```
+
+`make voice-setup` builds [whisper.cpp](https://github.com/ggml-org/whisper.cpp) v1.8.7 at pinned commit
+`48f628a84833905ee4a0658ee6d4a5c915ce1997` and downloads the multilingual Whisper base model (~142 MiB),
+checking its upstream checksum. The tools and model live in the Git-ignored `track_2a/.voice/`
+directory. Speech recognition runs locally and speech playback uses installed macOS system voices;
+no hosted speech API, Hugging Face account or inference credits are required. The coach still uses
+the configured Apertus endpoint.
+
+In Voice mode, press **Space** once to start recording, then **Enter** to stop and send it for transcription.
+Holding Space does not stop or submit the recording. A live microphone visualizer shows recent measured
+input levels, recording duration and dBFS. Its bars stay flat when the input is silent.
+Recordings are limited to two minutes; at the limit capture stops and waits for Enter before transcription.
+The transcript appears in the terminal, and the coach's
+reply is displayed and read aloud. Press **Enter** before recording to type an answer instead;
+**Escape** quits, and **Ctrl-C** stops speech playback and exits. Grant microphone access to your
+terminal application when macOS asks. If setup is incomplete, the client explains what is missing
+and returns to the menu. It does not start a backend conversation.
+
+The first version is turn-based: recording begins only on your keypress, after speech playback.
+It has no automatic turn detection, interruption handling or echo cancellation. Recognition quality
+has not been evaluated with real interview users. Audio and temporary transcripts are deleted after
+each turn; the recognized text becomes part of the normal backend conversation.
+
+Optional environment overrides for the local client:
+
+| Variable | Purpose |
+| --- | --- |
+| `PREPTALK_MIC_DEVICE` | AVFoundation microphone name or index; defaults to `default` |
+| `PREPTALK_TTS_VOICE` | Installed macOS voice name; otherwise selected for German, French or Italian |
+| `PREPTALK_WHISPER_BIN` | Absolute path to another `whisper-cli` executable |
+| `PREPTALK_WHISPER_MODEL` | Path to another compatible multilingual GGML Whisper model |
+
+Set these in the shell running `make chat`, for example `PREPTALK_MIC_DEVICE=1 make chat`.
 
 The menu and greeting make no model calls. Choice lists use local FHGR data if available; otherwise
 opening a selector downloads the two small JSONL files from the same pinned public revision as Docker.
@@ -114,7 +161,8 @@ apprenticeship is missing. «Gib mir jetzt Feedback» (or the French/Italian equ
 feedback on what was said so far; at the end of every interview the state also holds a decision trace (`trace`). The [Agent Chat UI](https://github.com/langchain-ai/agent-chat-ui) works as a front end
 (deployment URL `http://localhost:2026`, graph id `agent`).
 
-`voice: true` renders feedback as text suitable for speech synthesis; audio input and output are not implemented.
+`voice: true` renders feedback as text suitable for speech synthesis. The experimental local Voice client
+sets this flag automatically; the API itself continues to receive and return text.
 
 The FHGR datasets are fetched at build time from github.com/fhgr/Hackapertus (pinned commit); they are licensed
 for HackApertus use and therefore not committed here. Details: [technical report](technical_report.md).
@@ -137,7 +185,7 @@ for HackApertus use and therefore not committed here. Details: [technical report
 | `tests/support/` | Local fake model server used by integration tests |
 | `technical_report.md` | Technical report in the organizers' required format |
 | `data/` | Data provenance and redistribution notes |
-| `docs/report/` | Detailed LaTeX report sources |
+| `docs/report/` | LaTeX sources for the six-page submission report |
 | `docs/challenge_docs/` | Local challenge reference documents (Git-ignored) |
 
 Session state is JSON stored in LangGraph checkpoints. Each turn replays previous tool results
@@ -152,7 +200,7 @@ at `fhgr/datasets` (or an alternate `FHGR_DATA` path) and a FrameX binary built 
 `Dockerfile`. Set `FRAMEX_BINARY` if the matching engine is not on `PATH`.
 
 Install Ruff, then run `make check` for lint and Compose validation. These checks do not start
-services or call a model. `make report` rebuilds the PDF with pdfLaTeX and the packages declared in
+services or call a model. `make report` rebuilds the six-page `NLP-Lab_Report.pdf` with pdfLaTeX and the packages declared in
 `docs/report/report.tex`, or with Tectonic, which fetches its TeX packages on the first build.
 Regenerating the report figures additionally requires Matplotlib.
 

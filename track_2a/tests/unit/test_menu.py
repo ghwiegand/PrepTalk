@@ -32,27 +32,34 @@ class MenuTest(unittest.TestCase):
     def test_start_row_uses_no_presets_without_loading_the_catalog(self):
         with patch.object(menu, "KeyReader") as reader, patch.object(catalog, "load") as load, \
                 contextlib.redirect_stdout(io.StringIO()):
-            reader.return_value.__enter__.return_value.read.side_effect = ["down", "down", "down", "enter"]
-            self.assertEqual(menu.main_menu(TerminalUI("de")), (None, None, "de"))
+            reader.return_value.__enter__.return_value.read.side_effect = ["down", "down", "down", "down", "enter"]
+            self.assertEqual(menu.main_menu(TerminalUI("de")), (None, None, "de", "chat"))
         load.assert_not_called()
 
     def test_space_opens_dropdown_instead_of_starting_chat(self):
         result, output = self.run_menu(["space", "down", "space", "end", "enter"])
-        self.assertEqual(result, ("S-04", None, "de"))
+        self.assertEqual(result, ("S-04", None, "de", "chat"))
         self.assertIn("┌", output)
         self.assertIn("S-04", output)
 
+    def test_voice_mode_is_opt_in_and_cancelling_keeps_chat(self):
+        result, output = self.run_menu(["down", "down", "down", "space", "down", "enter", "end", "enter"])
+        self.assertEqual(result, (None, None, "de", "voice"))
+        self.assertIn(TEXT["de"]["mode_voice"], output)
+        result, _ = self.run_menu(["down", "down", "down", "space", "down", "back", "end", "enter"])
+        self.assertEqual(result, (None, None, "de", "chat"))
+
     def test_posting_replaces_scenario_and_can_be_cleared(self):
         result, _ = self.run_menu(["down", "space", "down", "down", "enter", "end", "enter"], scenario="S-04")
-        self.assertEqual(result, (None, "P-02", "de"))
+        self.assertEqual(result, (None, "P-02", "de", "chat"))
         result, _ = self.run_menu(["space", "down", "enter", "end", "enter"], posting="P-01")
-        self.assertEqual(result, ("S-04", None, "de"))
+        self.assertEqual(result, ("S-04", None, "de", "chat"))
         result, _ = self.run_menu(["down", "space", "home", "enter", "end", "enter"], posting="P-01")
-        self.assertEqual(result, (None, None, "de"))
+        self.assertEqual(result, (None, None, "de", "chat"))
 
     def test_long_dropdown_scrolls_and_escape_preserves_selection(self):
         result, output = self.run_menu(["down", "space", "end", "enter", "space", "up", "back", "end", "enter"])
-        self.assertEqual(result, (None, "P-10", "de"))
+        self.assertEqual(result, (None, "P-10", "de", "chat"))
         self.assertIn("11/11", output)
 
     def test_language_changes_menu_choices_and_chat_handoff(self):
@@ -92,7 +99,7 @@ class MenuTest(unittest.TestCase):
         with patch.object(menu, "KeyReader") as reader, patch.object(catalog, "load", side_effect=OSError("offline")), \
                 contextlib.redirect_stdout(io.StringIO()) as output:
             reader.return_value.__enter__.return_value.read.side_effect = ["space", "end", "enter"]
-            self.assertEqual(menu.main_menu(TerminalUI("fr")), (None, None, "fr"))
+            self.assertEqual(menu.main_menu(TerminalUI("fr")), (None, None, "fr", "chat"))
         self.assertIn(TEXT["fr"]["catalog_error"], output.getvalue())
 
     def test_quit_escape_and_interrupt_do_not_connect(self):

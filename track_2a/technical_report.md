@@ -37,11 +37,14 @@ model calls, consumes the pending answer, and runs until another candidate respo
 Session state is JSON stored by LangGraph. Calls within one process are serialized because the
 FrameX dialogue adapter has shared globals.
 
-The terminal client offers a localized main menu for scenario, posting and language selection,
+The terminal client offers a localized main menu for scenario, posting, language and mode selection,
 followed by a static greeting before connecting to the backend. Neither step makes a model call. A
 progress bar counts main questions from the actual flow; reasks and follow-ups retain their position.
-The API also exposes progress metadata and a decision trace. The `voice` option formats feedback for
-future speech synthesis; microphone input and audio playback are not implemented.
+The API also exposes progress metadata and a decision trace. Chat is the default mode. An optional,
+experimental macOS voice client records a turn on keypress, transcribes it locally with Whisper base
+through whisper.cpp, sends text to the same coach API and reads the reply using macOS system voices.
+The `voice` API option formats feedback for speech synthesis. The microphone and audio playback stay
+on the client machine; voice tools and weights are optional local assets excluded from the submission.
 
 ## 3. Use of Apertus
 
@@ -61,6 +64,10 @@ or malformed model response does not automatically terminate an interview.
 
 The challenge's runtime gates are Apertus 1.5 8B, less than 32 GB VRAM and fewer than five model calls
 per candidate answer on average. The reported evaluation measured about 3.1 calls per answer.
+
+The experimental voice client additionally uses the multilingual Whisper base speech-recognition model
+(MIT) locally, with whisper.cpp v1.8.7 pinned to `48f628a84833905ee4a0658ee6d4a5c915ce1997`.
+It is separate from the Apertus coach and was not part of the reported interview evaluation.
 
 FrameX is pre-existing MIT-licensed work from the Chair of Data Science and Natural Language
 Processing, University of St. Gallen. The dependency is pinned to
@@ -119,7 +126,9 @@ stateless harnesses, incomplete setup, unknown IDs, language handling and early 
   of roughly 60–80 seconds. Current hardware and endpoint configuration affect latency.
 - FrameX's shared dialogue globals serialize turns within a process. Scaling needs to account
   for that constraint and checkpoint storage.
-- There is a terminal interface and API, but no custom browser frontend or voice interface.
+- The experimental voice client currently supports macOS only, requires manual recording controls,
+  and has no automatic turn detection, interruption handling or echo cancellation. Real-user speech
+  recognition quality and end-to-end voice latency have not been evaluated. There is no custom browser frontend.
 
 ## 7. Reproducibility
 
@@ -145,6 +154,10 @@ memory, so the complete configuration must remain within the challenge's 32 GB l
 For a manual interview, run `make chat` in another terminal. Use `ARGS="--lang fr"` or
 `ARGS="--lang it"` to select a language, and `ARGS="--scenario S-01 --trace trace.html"` for a
 scenario with an exported decision trace.
+
+For optional local macOS audio, `make voice-setup` builds the speech recognizer and downloads its
+checksum-verified multilingual base model. Select Voice in the menu or use `ARGS="--mode voice"`.
+The project README lists host prerequisites and controls. Model weights and recordings are not committed.
 
 `make check` runs lint and Compose validation. After building the coach image, `make test-docker`
 runs automated tests without an external model. `make test-unit` needs only Python 3 on the host.
