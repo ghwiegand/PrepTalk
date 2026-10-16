@@ -80,9 +80,22 @@ make chat ARGS="--scenario S-01 --trace trace.html"
 make chat ARGS="--posting P-01 --lang fr --name Alex"
 ```
 
-The terminal displays its welcome locally in the selected language (German by default).
-It connects to the backend only after your first non-empty answer; pressing Enter immediately exits
-without creating a thread. The greeting text is shared with the backend in `src/preptalk/coach/greetings.py`.
+`make chat` opens a main menu. Use ↑/↓ to move between scenario, posting, language and **Start chat**.
+Space or Enter opens an inline dropdown; use ↑/↓ to browse and Space or Enter to confirm. Long lists
+scroll automatically. Escape closes a dropdown without changing its value, or exits the main menu.
+Scenario and posting default to no selection; choose the first dropdown item to clear a preset.
+A scenario already includes a posting and a fictional candidate profile, so selecting one clears
+the other preset. Command-line options preselect these menu settings.
+
+The language selector immediately translates the menu and sets the interview language (German by
+default, French and Italian available). `--lang` sets its initial value. Use `--no-menu` to start
+directly with the command-line settings, e.g. `make chat ARGS="--no-menu --lang fr"`.
+
+The menu and greeting make no model calls. Choice lists use local FHGR data if available; otherwise
+opening a selector downloads the two small JSONL files from the same pinned public revision as Docker.
+The lists are reused for the rest of that chat process. The chat connects to the backend only after
+your first non-empty message. In the main menu, Escape quits; once in the chat, an empty input quits without
+creating a thread. The free-chat greeting is shared with the backend in `src/preptalk/coach/greetings.py`.
 Once the interview starts, a localized progress bar tracks completed main questions from the actual
 interview plan. Follow-ups and repeated questions stay on the same main question; your own questions
 and early feedback are labelled separately. API clients can read this metadata from `coach.progress`.

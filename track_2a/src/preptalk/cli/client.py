@@ -8,6 +8,7 @@ import json
 import urllib.request
 
 from preptalk.coach.greetings import ASK_JOB
+from .menu import main_menu
 from .terminal import TerminalUI
 
 
@@ -20,15 +21,24 @@ def post(url, body):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--url", default="http://localhost:2026")
-    ap.add_argument("--posting")
-    ap.add_argument("--scenario")
+    presets = ap.add_mutually_exclusive_group()
+    presets.add_argument("--posting")
+    presets.add_argument("--scenario")
     ap.add_argument("--lang", choices=ASK_JOB)
     ap.add_argument("--name")
+    ap.add_argument("--no-menu", action="store_true", help="start the chat directly, using command-line options")
     ap.add_argument("--trace", help="write the decision trace as HTML to this file when the interview ends")
     args = ap.parse_args()
     lang = args.lang or "de"
     ui = TerminalUI(lang)
-    ui.welcome(ASK_JOB[lang])
+    if not args.no_menu:
+        selection = main_menu(ui, args.scenario, args.posting)
+        if selection is None:
+            ui.goodbye()
+            return
+        args.scenario, args.posting, args.lang = selection
+    greeting = ui.text["preset_greeting"] if args.scenario or args.posting else ASK_JOB[ui.lang]
+    ui.welcome(greeting)
     text = ui.ask()
     if not text.strip():
         ui.goodbye()
@@ -39,7 +49,7 @@ def main():
     thread = None
     extra = {k: v for k, v in (("posting_id", args.posting), ("scenario_id", args.scenario),
                                 ("lang", args.lang), ("name", args.name)) if v}
-    turn = {"messages": [{"role": "assistant", "content": ASK_JOB[lang]},
+    turn = {"messages": [{"role": "assistant", "content": greeting},
                          {"role": "user", "content": text}], "setup_asked": True, **extra}
     while True:
         with ui.waiting():

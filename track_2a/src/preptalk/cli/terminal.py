@@ -23,6 +23,18 @@ TEXT = {
         "completed": "Gespräch abgeschlossen",
         "early_feedback": "Vorzeitiges Feedback",
         "ended": "Gespräch beendet",
+        "main_menu": "Hauptmenü",
+        "menu_language": "Sprache",
+        "scenario": "Szenario",
+        "posting": "Lehrstelle",
+        "none": "Keine Auswahl",
+        "start_chat": "Chat starten",
+        "menu_help": "↑/↓ Navigieren · Leertaste/Enter Öffnen oder starten · Esc Beenden",
+        "dropdown_help": "↑/↓ Auswählen · Leertaste/Enter Bestätigen · Esc Zurück",
+        "loading_choices": "Auswahl wird geladen",
+        "catalog_error": "Die Auswahl konnte nicht geladen werden. Prüfe deine Internetverbindung und versuche es erneut.",
+        "preset_greeting": "Deine Auswahl ist bereit. Schreib eine kurze Nachricht, um das Übungsgespräch zu starten.",
+        "scenario_hint": "Ein Szenario enthält bereits eine Lehrstelle und ein fiktives Bewerberprofil.",
     },
     "fr": {
         "language": "Français",
@@ -39,6 +51,18 @@ TEXT = {
         "completed": "Entretien terminé",
         "early_feedback": "Retour anticipé",
         "ended": "Entretien arrêté",
+        "main_menu": "Menu principal",
+        "menu_language": "Langue",
+        "scenario": "Scénario",
+        "posting": "Offre d'apprentissage",
+        "none": "Aucune sélection",
+        "start_chat": "Démarrer le chat",
+        "menu_help": "↑/↓ Naviguer · Espace/Entrée Ouvrir ou démarrer · Échap Quitter",
+        "dropdown_help": "↑/↓ Choisir · Espace/Entrée Confirmer · Échap Retour",
+        "loading_choices": "Chargement des choix",
+        "catalog_error": "Impossible de charger les choix. Vérifie ta connexion Internet et réessaie.",
+        "preset_greeting": "Ton choix est prêt. Écris un court message pour commencer l'entretien d'entraînement.",
+        "scenario_hint": "Un scénario comprend déjà une offre d'apprentissage et un profil de candidature fictif.",
     },
     "it": {
         "language": "Italiano",
@@ -55,6 +79,18 @@ TEXT = {
         "completed": "Colloquio completato",
         "early_feedback": "Feedback anticipato",
         "ended": "Colloquio interrotto",
+        "main_menu": "Menu principale",
+        "menu_language": "Lingua",
+        "scenario": "Scenario",
+        "posting": "Offerta di tirocinio",
+        "none": "Nessuna selezione",
+        "start_chat": "Avvia la chat",
+        "menu_help": "↑/↓ Naviga · Spazio/Invio Apri o avvia · Esc Esci",
+        "dropdown_help": "↑/↓ Scegli · Spazio/Invio Conferma · Esc Indietro",
+        "loading_choices": "Caricamento delle opzioni",
+        "catalog_error": "Impossibile caricare le opzioni. Controlla la connessione Internet e riprova.",
+        "preset_greeting": "La tua scelta è pronta. Scrivi un breve messaggio per iniziare il colloquio di prova.",
+        "scenario_hint": "Uno scenario include già un'offerta di tirocinio e un profilo di candidatura fittizio.",
     },
 }
 
@@ -90,12 +126,16 @@ class TerminalUI:
                 rendered = ""
             print(self.style(rendered, "2") if muted else rendered)
 
-    def welcome(self, greeting):
+    def header(self):
         gap = max(2, self.width - 2 - len("PrepTalk") - len(self.text["language"]))
         print()
         print("  " + self.style("PrepTalk", "1;36") + " " * gap + self.style(self.text["language"], "2"))
         self.body(self.text["tagline"], muted=True)
         print("  " + self.style("─" * (self.width - 2), "2"))
+
+    def welcome(self, greeting, header=True):
+        if header:
+            self.header()
         # Keep the setup question visually separate from the introduction in all three static greetings.
         intro, separator, question = greeting.rpartition(". ")
         self.message(f"{intro}.\n\n{question}" if separator else greeting)
@@ -108,11 +148,14 @@ class TerminalUI:
         print()
 
     def ask(self):
+        return self.prompt(self.text["you"]) or ""
+
+    def prompt(self, label):
         try:
-            return input("  " + self.style(self.text["you"], "1") + "  " + self.style("›", "36") + " ")
+            return input("  " + self.style(label, "1") + "  " + self.style("›", "36") + " ")
         except (EOFError, KeyboardInterrupt):
             print()
-            return ""
+            return None
 
     def progress(self, progress):
         if not progress:
@@ -132,7 +175,7 @@ class TerminalUI:
         print()
 
     @contextmanager
-    def waiting(self):
+    def waiting(self, label=None):
         if not self.interactive:
             yield
             return
@@ -141,8 +184,8 @@ class TerminalUI:
         frames = ("●··", "·●·", "··●", "·●·")
 
         def draw(index):
-            label = textwrap.shorten(self.text["waiting"], width=max(1, self.width - 6), placeholder="…")
-            print("\r\033[2K  " + self.style(label, "2") + " " + self.style(frames[index], "36"),
+            message = textwrap.shorten(label or self.text["waiting"], width=max(1, self.width - 6), placeholder="…")
+            print("\r\033[2K  " + self.style(message, "2") + " " + self.style(frames[index], "36"),
                   end="", flush=True)
 
         def animate():

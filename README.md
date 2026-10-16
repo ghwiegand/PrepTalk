@@ -40,7 +40,7 @@ From the repository root:
 
 ```bash
 make run          # start the Docker stack, API on http://localhost:2026
-make chat         # terminal client, in a second terminal
+make chat         # main menu and terminal chat, in a second terminal
 make check        # lint and validate Compose
 make test-unit    # fast checks using only the Python standard library
 make test-docker  # all tests, using the built coach image
@@ -49,6 +49,9 @@ make stop         # stop the stack, retaining database volumes
 
 The root Makefile forwards commands to `track_2a/`. You can also `cd track_2a` and run them there.
 Options still work, for example `make chat ARGS="--lang fr"`.
+The menu selects a scenario, posting and language; both presets default to none. Changing the
+language translates the menu immediately. Use ↑/↓ to navigate and Space to open dropdowns.
+Select **Start chat** at the bottom and press Enter; Escape quits the menu.
 For local Python dependency installation, run `uv sync --locked` inside `track_2a/`.
 
 `make report` builds `track_2a/NLP-Lab_Report.pdf` from the detailed LaTeX sources. The submission

@@ -10,6 +10,8 @@ in this repository. The Docker build pins the dataset repository to commit
 
 For local execution, provide `track_2a/fhgr/datasets/` or set `FHGR_DATA` to another dataset directory.
 The `fhgr/` directory is Git-ignored. Local challenge PDFs under `docs/challenge_docs/` are also ignored.
+The terminal's selectors use these local files when present, or download postings and scenarios
+from the same pinned revision on demand. Those lists stay in memory for the current chat process.
 
 No new dataset is submitted. The small handwritten guard-evaluation cases live in
 `evaluation/data/guard_cases.json`; deterministic test fixtures live in `tests/support/`.

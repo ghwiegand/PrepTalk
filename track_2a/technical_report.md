@@ -37,7 +37,8 @@ model calls, consumes the pending answer, and runs until another candidate respo
 Session state is JSON stored by LangGraph. Calls within one process are serialized because the
 FrameX dialogue adapter has shared globals.
 
-The terminal client displays a static localized greeting before connecting to the backend. A
+The terminal client offers a localized main menu for scenario, posting and language selection,
+followed by a static greeting before connecting to the backend. Neither step makes a model call. A
 progress bar counts main questions from the actual flow; reasks and follow-ups retain their position.
 The API also exposes progress metadata and a decision trace. The `voice` option formats feedback for
 future speech synthesis; microphone input and audio playback are not implemented.

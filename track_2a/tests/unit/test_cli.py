@@ -13,7 +13,7 @@ from preptalk.coach.greetings import ASK_JOB
 class ChatClientTest(unittest.TestCase):
     def test_empty_input_exits_locally_in_each_language(self):
         for lang in ASK_JOB:
-            with self.subTest(lang=lang), patch("sys.argv", ["preptalk", "--lang", lang]), \
+            with self.subTest(lang=lang), patch("sys.argv", ["preptalk", "--no-menu", "--lang", lang]), \
                     patch("builtins.input", return_value="") as ask, patch.object(client, "post") as post, \
                     contextlib.redirect_stdout(io.StringIO()) as output:
                 client.main()
@@ -29,7 +29,7 @@ class ChatClientTest(unittest.TestCase):
             "coach": {"progress": {"current": 1, "total": 10, "completed": 0,
                                     "phase": "interview", "follow_up": False}},
         }
-        with patch("sys.argv", ["preptalk"]), patch("builtins.input", side_effect=["Ich bin Lea.", ""]), \
+        with patch("sys.argv", ["preptalk", "--no-menu"]), patch("builtins.input", side_effect=["Ich bin Lea.", ""]), \
                 patch.object(client, "post", side_effect=[{"thread_id": "test"}, state]) as post, \
                 contextlib.redirect_stdout(io.StringIO()) as output:
             client.main()
