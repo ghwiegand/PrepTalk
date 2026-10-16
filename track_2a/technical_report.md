@@ -4,7 +4,7 @@
 - **Event:** Hack Apertus 2026, Online
 - **Team:** NLP-Lab — Götz-Henrik Wiegand, PhD student, University of St. Gallen
 - **Repository:** <https://github.com/ghwiegand/PrepTalk>
-- **Demo:** Terminal client (`make chat`); video URL to be supplied separately with the submission.
+- **Demo:** Terminal client (`make chat`); [demo video](https://youtu.be/XC-G08Lw4DI).
 
 ## 1. Summary
 
