@@ -92,13 +92,14 @@ default, French and Italian available). `--lang` sets its initial value. Use `--
 directly with the command-line settings, e.g. `make chat ARGS="--no-menu --lang fr"`.
 
 The interactive menu, Chat and Voice share one layout: settings or conversation on the left,
-a fixed ASCII orb on the right, and input controls in the left footer. Interview progress stays below
-the coach, including the current main question, completion bar and follow-up status. Use **↑/↓**
+a large fixed ASCII orb on the right, and input controls in the left footer. Interview progress is centered
+at the bottom of the right pane, including the current main question, completion bar and follow-up status. Use **↑/↓**
 or **PgUp/PgDn** to browse chat history, including while typing; **Home/End** moves the text cursor
 when editing. Empty input + Enter or Escape exits. Final feedback remains open until Enter.
 Resizing reflows the layout; narrow terminals hide the orb pane and show progress above the chat.
 The orb takes inspiration from the [ascii-orb void design](https://adriancodes.github.io/ascii-orb/)
-and uses the supplied grey, white and blue palette. Its idle motion is slow in the menu and chat;
+and uses the same cyan terminal theme as the rest of the interface. The orb fills the available pane
+with a larger character grid; terminal font size applies to the entire interface. Its idle motion is slow in the menu and chat;
 the Python renderer adds no frontend dependencies. Set `PREPTALK_REDUCED_MOTION=1` for a static orb.
 
 The mode selector defaults to **Chat**. **Voice (experimental)** adds local microphone recording,

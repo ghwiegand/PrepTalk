@@ -12,6 +12,7 @@ from unittest.mock import patch
 import wave
 
 from preptalk.cli import menu
+from preptalk.cli import view
 from preptalk.cli.orb import PALETTE, render_orb
 from preptalk.cli.speech import SpeechEnvelope
 from preptalk.cli.terminal import TerminalUI
@@ -22,15 +23,16 @@ def plain(lines):
 
 
 class OrbTest(unittest.TestCase):
-    def test_frames_fit_their_grid_and_use_the_requested_palette(self):
+    def test_frames_fit_their_grid_and_match_the_terminal_cyan_theme(self):
         for width, height in ((23, 5), (23, 9), (35, 12)):
             with self.subTest(width=width, height=height):
                 frame = render_orb(width, height, 2, 0.8, color=True)
                 self.assertEqual(len(frame), height)
                 self.assertTrue(all(len(line) == width and line.isascii() for line in plain(frame)))
-                colors = set(re.findall(r"\033\[38;2;(\d+);(\d+);(\d+)m", "".join(frame)))
+                colors = set(re.findall(r"\033\[0;([\d;]+)m", "".join(frame)))
                 self.assertTrue(colors)
-                self.assertTrue(colors <= {tuple(map(str, rgb)) for rgb in PALETTE})
+                self.assertTrue(colors <= set(PALETTE))
+                self.assertTrue(all(code.endswith("36") for code in colors))
                 self.assertNotIn("\033", "".join(render_orb(width, height, 2)))
 
     def test_idle_motion_is_slow_and_audio_changes_the_frame(self):
@@ -78,6 +80,20 @@ class OrbTest(unittest.TestCase):
             clock.return_value = 140
             ui.view.set_footer([], audio_level=0.9)
             self.assertEqual(first, ui.view._previous)
+
+    def test_large_terminal_uses_a_larger_grid_that_does_not_shrink_when_progress_arrives(self):
+        ui = TerminalUI("de")
+        ui.interactive = True
+        ui.color = False
+        with patch("shutil.get_terminal_size", return_value=os.terminal_size((144, 30))), \
+                patch.object(view, "render_orb", wraps=render_orb) as draw, \
+                contextlib.redirect_stdout(io.StringIO()):
+            ui.ensure_view().render()
+            width, height = draw.call_args.args[:2]
+            self.assertGreater(width * height, 35 * 12)  # Previous maximum character grid.
+            self.assertGreaterEqual(height, 15)
+            ui.progress({"phase": "interview", "current": 1, "total": 10, "completed": 0})
+            self.assertEqual(draw.call_args.args[:2], (width, height))
 
 
 class SpeechEnvelopeTest(unittest.TestCase):

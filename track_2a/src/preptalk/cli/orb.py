@@ -6,7 +6,8 @@ Original Python renderer: dim spherical texture, a bright inner ring, and audio-
 from functools import lru_cache
 import math
 
-PALETTE = ((110, 118, 129), (139, 148, 158), (240, 246, 252), (47, 129, 247))
+# Use the same theme-aware cyan as the header and controls, from dim shell to bright speech accents.
+PALETTE = ("2;36", "36", "1;36", "1;36")
 RAMP = " .:-=+*#"
 FPS = 30
 
@@ -51,8 +52,7 @@ def render_orb(width, height, seconds, audio_level=0, color=False):
                     shade = 3
             if color:
                 if char != " " and shade != previous_color:
-                    red, green, blue = PALETTE[shade]
-                    parts.append(f"\033[38;2;{red};{green};{blue}m")
+                    parts.append(f"\033[0;{PALETTE[shade]}m")
                     previous_color = shade
             parts.append(char)
         if color and previous_color is not None:

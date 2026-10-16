@@ -86,6 +86,32 @@ class LayoutTest(unittest.TestCase):
             self.assertNotIn("│", rendered)
             self.assertTrue(all(len(line) < 60 for line in frame(ui)))
 
+    def test_progress_is_centered_at_the_bottom_in_each_language_and_size(self):
+        for lang in ASK_JOB:
+            for columns, rows in ((80, 18), (80, 24), (144, 30), (180, 42)):
+                ui = self.make_ui(lang)
+                with self.subTest(lang=lang, columns=columns, rows=rows), \
+                        patch("shutil.get_terminal_size", return_value=os.terminal_size((columns, rows))), \
+                        contextlib.redirect_stdout(io.StringIO()):
+                    ui.welcome(ASK_JOB[lang])
+                    ui.progress({"phase": "interview", "current": 3, "total": 10,
+                                 "completed": 2, "follow_up": True})
+                    right = [line.partition("│")[2] for line in frame(ui)]
+                    bar_row = next(index for index, line in enumerate(right) if "[━━━" in line)
+                    block = [(index, line) for index, line in enumerate(right)
+                             if index >= bar_row - 1 and line.strip()]
+                    self.assertEqual(block[-1][0], rows - 3)
+                    for _, line in block:
+                        leading = len(line) - len(line.lstrip())
+                        trailing = len(line) - len(line.rstrip())
+                        self.assertLessEqual(abs(leading - trailing), 1)
+                    ui.message("Noch eine lange Antwort. " * 30)
+                    ui.view.editing = (ui.text["you"], "Meine Antwort", 13)
+                    ui.refresh()
+                    updated = [line.partition("│")[2] for line in frame(ui)]
+                    self.assertEqual(updated[bar_row:], right[bar_row:])
+                    self.assertTrue(all(len(line) < columns for line in frame(ui)))
+
     def test_history_scrolls_without_moving_the_coach(self):
         ui = self.make_ui()
         with patch("shutil.get_terminal_size", return_value=os.terminal_size((100, 30))), \

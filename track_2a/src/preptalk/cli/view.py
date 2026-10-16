@@ -53,7 +53,7 @@ class TerminalView:
         size = shutil.get_terminal_size()
         columns, rows = max(12, size.columns), max(4, size.lines)
         sidebar = columns >= 72 and rows >= 18
-        right_width = min(35, max(23, columns // 4))
+        right_width = min(59, max(23, columns // 3))
         return columns, rows, columns - right_width - 2 if sidebar else columns - 1, sidebar
 
     @property
@@ -171,12 +171,16 @@ class TerminalView:
 
         right_width = columns - width - 2
         progress_lines = self._wrap(self._progress_entries(), right_width + 1) if sidebar else []
+        # Reserve space even before the first question so progress never shifts or shrinks the orb.
+        progress_reserve = 5 if right_width >= 32 else 7
+        orb_space = max(3, height - 6 - progress_reserve - 3)
+        orb_height = min(28, orb_space)
         orb_top = 6
-        orb_height = 12 if height >= 30 else 9 if height >= 24 else 5
+        orb_top += (orb_space - orb_height) // 2
         seconds = 0 if self.reduced_motion else int((time.monotonic() - self._started) * FPS) / FPS
         art_rows = (render_orb(right_width, orb_height, seconds,
                                0 if self.reduced_motion else self.audio_level, self.ui.color) if sidebar else [])
-        progress_top = orb_top + orb_height + 1
+        progress_top = height - 2 - len(progress_lines)
         frame = []
         for row, (text, style) in enumerate(left):
             if sidebar and 4 <= row < height - 1:
@@ -186,7 +190,7 @@ class TerminalView:
                 progress_index = row - progress_top
                 if 0 <= progress_index < len(progress_lines):
                     right, right_style = progress_lines[progress_index]
-                    right = self.ui.style(right.ljust(right_width), right_style)
+                    right = self.ui.style(right.strip().center(right_width), right_style)
                 padded = text + " " * max(0, width - cells(text))
                 rendered = self.ui.style(padded, style) if style else padded
                 frame.append(rendered + self.ui.style("│", "2") + right)

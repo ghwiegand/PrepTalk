@@ -253,13 +253,39 @@ emotional moments, gender-atypical choices, strong self-doubt and dialect speake
 \end{center}
 
 \begin{center}\small
-\captionof{table}{Original consistency breakdown: percentage of scenario criteria met, by judge.}
+\captionof{table}{Original consistency breakdown: percentage of scenario criteria met, by judge.
+Groups are columns; parenthesized counts give the number of scenario runs.}
 \label{tab:cons}
-\begin{tabularx}{\textwidth}{@{}lXrr@{}}
+\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\textwidth}{@{}l*{10}{>{\centering\arraybackslash}X}@{}}
 \toprule
-\sffamily\bfseries Axis & \sffamily\bfseries Group ($n$) & \sffamily\bfseries Opus & \sffamily\bfseries Gemini \\
+& \multicolumn{3}{c}{\sffamily\bfseries Language}
+& \multicolumn{2}{c}{\sffamily\bfseries Profile}
+& \multicolumn{2}{c}{\sffamily\bfseries Dialect}
+& \multicolumn{3}{c}{\sffamily\bfseries Difficulty} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-6}\cmidrule(lr){7-8}\cmidrule(l){9-11}
+\sffamily\bfseries Judge
+& \shortstack{German\\(20)} & \shortstack{French\\(5)} & \shortstack{Italian\\(3)}
+& \shortstack{Sensitive\\(10)} & \shortstack{Standard\\(18)}
+& \shortstack{Dialect\\speaker\\(19)} & \shortstack{Standard\\language\\(9)}
+& \shortstack{Easy\\(5)} & \shortstack{Hard\\(5)} & \shortstack{Medium\\(18)} \\
 \midrule
-\csname @@input\endcsname consistency.tex
+Opus & 63\,\% & 52\,\% & 87\,\% & 71\,\% & 60\,\% & 64\,\% & 64\,\% & 76\,\% & 65\,\% & 60\,\% \\
+Gemini & 70\,\% & 76\,\% & 93\,\% & 80\,\% & 70\,\% & 71\,\% & 80\,\% & 80\,\% & 81\,\% & 70\,\% \\
+\bottomrule
+\end{tabularx}
+
+\medskip
+\begin{tabularx}{\textwidth}{@{}l*{6}{>{\centering\arraybackslash}X}@{}}
+\toprule
+& \multicolumn{6}{c}{\sffamily\bfseries Situation} \\
+\cmidrule(l){2-7}
+\sffamily\bfseries Judge
+& \shortstack{Assessment\\(1)} & \shortstack{Follow-up\\(1)} & \shortstack{Interview\\(20)}
+& \shortstack{Online\\(2)} & \shortstack{Phone call\\(2)} & \shortstack{Trial day\\(2)} \\
+\midrule
+Opus & 60\,\% & 40\,\% & 61\,\% & 90\,\% & 90\,\% & 50\,\% \\
+Gemini & 60\,\% & 80\,\% & 73\,\% & 90\,\% & 90\,\% & 50\,\% \\
 \bottomrule
 \end{tabularx}
 \end{center}
