@@ -5,9 +5,11 @@ import shutil
 import sys
 import textwrap
 import threading
+import time
 from contextlib import contextmanager
 
 from .keys import KeyReader
+from .orb import FPS
 from .view import TerminalView
 
 TEXT = {
@@ -46,6 +48,7 @@ TEXT = {
         "voice_recorded": "Aufnahme beendet · Enter: zur Transkription senden · Esc: beenden",
         "voice_transcribing": "Deine Aufnahme wird transkribiert",
         "voice_speaking": "Der Coach spricht · Esc: Vorlesen stoppen · Ctrl-C: beenden",
+        "voice_preparing": "Sprachausgabe wird vorbereitet · Esc: überspringen · Ctrl-C: beenden",
         "voice_no_speech": "Keine Sprache erkannt. Versuche es nochmals oder drücke Enter zum Tippen.",
         "voice_error": "Voice-Fehler: {error}",
         "voice_unavailable": "Voice ist noch nicht bereit: {error}",
@@ -99,6 +102,7 @@ TEXT = {
         "voice_recorded": "Enregistrement terminé · Entrée : transcrire · Échap : quitter",
         "voice_transcribing": "Transcription de ton enregistrement",
         "voice_speaking": "Le coach parle · Échap : arrêter la lecture · Ctrl-C : quitter",
+        "voice_preparing": "Préparation de la voix · Échap : passer · Ctrl-C : quitter",
         "voice_no_speech": "Aucune parole reconnue. Réessaie ou appuie sur Entrée pour écrire.",
         "voice_error": "Erreur vocale : {error}",
         "voice_unavailable": "Le mode vocal n'est pas encore prêt : {error}",
@@ -152,6 +156,7 @@ TEXT = {
         "voice_recorded": "Registrazione terminata · Invio: trascrivi · Esc: esci",
         "voice_transcribing": "Trascrizione della registrazione",
         "voice_speaking": "Il coach parla · Esc: interrompi la lettura · Ctrl-C: esci",
+        "voice_preparing": "Preparazione della voce · Esc: salta · Ctrl-C: esci",
         "voice_no_speech": "Nessuna voce riconosciuta. Riprova o premi Invio per scrivere.",
         "voice_error": "Errore vocale: {error}",
         "voice_unavailable": "La modalità vocale non è ancora pronta: {error}",
@@ -345,7 +350,7 @@ class TerminalUI:
         if self.view:
             self.view.set_footer([(self.text["finish"], "2")])
             with KeyReader() as keyboard:
-                while (key := keyboard.read(timeout=0.1)) not in ("enter", "back", "quit"):
+                while (key := keyboard.read(timeout=1 / FPS)) not in ("enter", "back", "quit"):
                     self.navigate(key)
                     self.refresh()
 
@@ -396,7 +401,7 @@ class TerminalUI:
                 print("\033[?25h", end="", flush=True)
 
     @contextmanager
-    def waiting(self, label=None, *, speaking=False):
+    def waiting(self, label=None, *, audio=None):
         if not self.interactive:
             yield
             return
@@ -407,16 +412,16 @@ class TerminalUI:
         def draw(index):
             if self.view:
                 self.view.set_footer([(f"{label or self.text['waiting']} {frames[index]}", "2")],
-                                     mouth=index if speaking else None)
+                                     audio_level=audio() if audio else None)
                 return
             message = textwrap.shorten(label or self.text["waiting"], width=max(1, self.width - 6), placeholder="…")
             print("\r\033[2K  " + self.style(message, "2") + " " + self.style(frames[index], "36"),
                   end="", flush=True)
 
         def animate():
-            index = 0
-            while not stopped.wait(0.18):
-                index = (index + 1) % len(frames)
+            started = time.monotonic()
+            while not stopped.wait(1 / FPS if self.view else 0.18):
+                index = int((time.monotonic() - started) / 0.18) % len(frames)
                 draw(index)
 
         worker = threading.Thread(target=animate, daemon=True)
@@ -431,7 +436,7 @@ class TerminalUI:
             if worker.ident is not None:
                 worker.join()
             if self.view:
-                self.view.set_footer([], mouth=0 if speaking else None)
+                self.view.set_footer([], audio_level=0 if audio else None)
             else:
                 print("\r\033[2K\033[?25h", end="", flush=True)
 

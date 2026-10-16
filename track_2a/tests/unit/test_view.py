@@ -1,4 +1,4 @@
-"""Fixed voice panes, scrolling, resizing, and playback without audio devices."""
+"""Fixed terminal panes, scrolling, resizing, and playback without audio devices."""
 
 import contextlib
 import io
@@ -10,7 +10,6 @@ from unittest.mock import Mock, patch
 
 from preptalk.cli import voice, view
 from preptalk.cli.terminal import TerminalUI
-from preptalk.cli.view import MOUTHS
 from preptalk.coach.greetings import ASK_JOB
 
 
@@ -18,12 +17,13 @@ def frame(ui):
     return [re.sub(r"\033\[[\d;]*m", "", line) for line in ui.view._previous]
 
 
-def face_position(ui):
+def orb_position(ui):
     lines = frame(ui)
-    return next((row, line.index("| o   o |")) for row, line in enumerate(lines) if "| o   o |" in line)
+    return next((row + 2, len(line.partition("│")[0]) + 1) for row, line in enumerate(lines)
+                if line.partition("│")[2].strip() == "Coach")
 
 
-class PortraitTest(unittest.TestCase):
+class LayoutTest(unittest.TestCase):
     def make_ui(self, lang="de"):
         ui = TerminalUI(lang)
         ui.interactive = True
@@ -36,14 +36,14 @@ class PortraitTest(unittest.TestCase):
             with self.subTest(lang=lang), patch("shutil.get_terminal_size", return_value=os.terminal_size((100, 30))), \
                     contextlib.redirect_stdout(io.StringIO()) as output:
                 ui.welcome(greeting, voice=True)
-                position = face_position(ui)
+                position = orb_position(ui)
                 for turn in range(20):
                     ui.body(f"{ui.text['you']}: Antwort {turn}")
                     ui.message(f"Frage {turn}: " + "Langer Text im Gespräch. " * 12)
                     ui.progress({"phase": "interview", "current": 2, "total": 10, "completed": 1})
                     ui.voice_controls()
-                    self.assertEqual(face_position(ui), position)
-                    self.assertEqual(sum("| o   o |" in line for line in frame(ui)), 1)
+                    self.assertEqual(orb_position(ui), position)
+                    self.assertEqual(sum(line.partition("│")[2].strip() == "Coach" for line in frame(ui)), 1)
                 self.assertIn("Frage 19", "\n".join(frame(ui)))
                 self.assertTrue(all(len(line) <= 99 for line in frame(ui)))
                 # Absolute-position paints must never advance the terminal's scrollback.
@@ -58,7 +58,7 @@ class PortraitTest(unittest.TestCase):
                 ui.welcome(ASK_JOB[lang])
                 progress = {"phase": "interview", "current": 3, "total": 10, "completed": 2, "follow_up": True}
                 ui.progress(progress)
-                position = face_position(ui)
+                position = orb_position(ui)
                 for _ in range(3):
                     ui.message("Une longue réponse. " * 20)
                     ui.view.editing = (ui.text["you"], "", 0)
@@ -69,7 +69,7 @@ class PortraitTest(unittest.TestCase):
                     self.assertIn(ui.text["pane_completed"].format(**progress), " ".join(right.split()))
                     self.assertIn("[━━━", right)
                     self.assertNotIn("[━━━", left)
-                    self.assertEqual(face_position(ui), position)
+                    self.assertEqual(orb_position(ui), position)
                     self.assertTrue(all(len(line) < 80 for line in frame(ui)))
                 ui.progress(None)
                 self.assertNotIn("[━━━", "\n".join(frame(ui)))
@@ -92,18 +92,18 @@ class PortraitTest(unittest.TestCase):
                 contextlib.redirect_stdout(io.StringIO()):
             ui.welcome(ASK_JOB['de'], voice=True)
             ui.body("\n".join(f"Zeile {number:03}" for number in range(100)))
-            position = face_position(ui)
+            position = orb_position(ui)
             ui.voice_controls()
             self.assertIn("Zeile 099", "\n".join(frame(ui)))
             self.assertTrue(ui.navigate("home"))
             self.assertIn("Zeile 000", "\n".join(frame(ui)))
             self.assertNotIn("Zeile 099", "\n".join(frame(ui)))
-            self.assertEqual(face_position(ui), position)
+            self.assertEqual(orb_position(ui), position)
             ui.navigate("page_down")
             self.assertNotIn("Zeile 000", "\n".join(frame(ui)))
             ui.navigate("end")
             self.assertIn("Zeile 099", "\n".join(frame(ui)))
-            self.assertEqual(face_position(ui), position)
+            self.assertEqual(orb_position(ui), position)
 
     def test_meter_updates_in_left_footer_and_keeps_a_single_instruction(self):
         ui = self.make_ui()
@@ -111,13 +111,13 @@ class PortraitTest(unittest.TestCase):
         with patch("shutil.get_terminal_size", return_value=os.terminal_size((100, 30))), \
                 contextlib.redirect_stdout(io.StringIO()):
             ui.welcome(ASK_JOB['de'], voice=True)
-            position = face_position(ui)
+            position = orb_position(ui)
             entries = list(ui.view.entries)
             ui.voice_controls()
             with ui.microphone_meter() as draw:
                 for second in range(1, 5):
                     draw([0.5, 1], second, -12)
-                    self.assertEqual(face_position(ui), position)
+                    self.assertEqual(orb_position(ui), position)
                     rendered = "\n".join(frame(ui))
                     self.assertIn(f"00:0{second}", rendered)
                     self.assertIn("█", rendered)
@@ -137,7 +137,7 @@ class PortraitTest(unittest.TestCase):
             for columns, rows, visible in ((60, 24, False), (120, 40, True), (80, 12, False), (80, 24, True)):
                 size.return_value = os.terminal_size((columns, rows))
                 ui.refresh()
-                self.assertEqual(any("| o   o |" in line for line in frame(ui)), visible)
+                self.assertEqual(any(line.partition("│")[2].strip() == "Coach" for line in frame(ui)), visible)
                 self.assertEqual(len(frame(ui)), rows)
                 self.assertTrue(all(len(line) < columns for line in frame(ui)))
                 self.assertEqual(list(ui.view.entries), entries)
@@ -150,26 +150,36 @@ class PortraitTest(unittest.TestCase):
                     contextlib.redirect_stdout(io.StringIO()) as output:
                 ui.welcome(ASK_JOB['de'], voice=voice_mode)
                 self.assertIsNone(ui.view)
-                self.assertNotIn("| o   o |", output.getvalue())
+                self.assertNotIn("│", output.getvalue())
                 self.assertIn("Für welche Lehre", output.getvalue())
 
-    def test_finish_and_escape_close_the_animated_mouth(self):
+    def test_finish_and_escape_reset_audio_animation(self):
+        from tests.unit.test_voice import write_wav
+
         for skipped in (False, True):
             ui = self.make_ui()
             audio = voice.VoiceIO.__new__(voice.VoiceIO)
             audio.ui = ui
             audio.voices = {"de": "Anna"}
+            synthesis = Mock(returncode=0)
+            synthesis.poll.return_value = 0
             process = Mock(returncode=-15 if skipped else 0)
             process.poll.return_value = None
             moved = threading.Event()
 
-            def observe(lines, mouth=None):
-                update(lines, mouth=mouth)
-                if mouth:
+            def launch(command, **kwargs):
+                if command[0] == "/usr/bin/say":
+                    write_wav(command[command.index("-o") + 1], 2000)
+                    return synthesis
+                return process
+
+            def observe(lines, audio_level=None):
+                update(lines, audio_level=audio_level)
+                if audio_level:
                     moved.set()
 
             def next_key(**kwargs):
-                self.assertTrue(moved.wait(timeout=2), "Mouth never animated during playback")
+                self.assertTrue(moved.wait(timeout=2), "Orb never received audio levels during playback")
                 if skipped:
                     return "back"
                 process.poll.return_value = 0
@@ -177,15 +187,14 @@ class PortraitTest(unittest.TestCase):
 
             with self.subTest(skipped=skipped), \
                     patch("shutil.get_terminal_size", return_value=os.terminal_size((100, 30))), \
-                    patch.object(voice.subprocess, "Popen", return_value=process), \
-                    patch.object(voice, "KeyReader") as reader, contextlib.redirect_stdout(io.StringIO()) as output:
+                    patch.object(voice.subprocess, "Popen", side_effect=launch), \
+                    patch.object(voice, "KeyReader") as reader, contextlib.redirect_stdout(io.StringIO()):
                 reader.return_value.__enter__.return_value.read.side_effect = next_key
                 ui.welcome(ASK_JOB['de'], voice=True)
                 update = ui.view.set_footer
                 with patch.object(ui.view, "set_footer", side_effect=observe):
                     self.assertTrue(audio.speak(ASK_JOB['de']))
-                self.assertIn(MOUTHS[1], output.getvalue())
-                self.assertTrue(any(MOUTHS[0] in line for line in frame(ui)))
+                self.assertEqual(ui.view.audio_level, 0)
                 self.assertFalse(ui.view.footer)
             if skipped:
                 process.terminate.assert_called_once()
@@ -199,11 +208,11 @@ class PortraitTest(unittest.TestCase):
         with patch("shutil.get_terminal_size", return_value=os.terminal_size((100, 30))), \
                 patch.object(view, "KeyReader") as reader, contextlib.redirect_stdout(io.StringIO()):
             ui.welcome(ASK_JOB['de'], voice=True)
-            position = face_position(ui)
+            position = orb_position(ui)
             keys = iter([*answer, "backspace", "left", "X", "home", "q", "end", "!", "enter"])
 
             def read(**kwargs):
-                self.assertEqual(face_position(ui), position)
+                self.assertEqual(orb_position(ui), position)
                 self.assertTrue(all(len(line) < 100 for line in frame(ui)))
                 return next(keys)
 
@@ -211,7 +220,7 @@ class PortraitTest(unittest.TestCase):
             result = ui.ask()
             self.assertEqual(result, "q" + answer[:-2] + "X" + answer[-2] + "!")
             self.assertIn((f"Du: {result}", None), ui.view.entries)
-            self.assertEqual(face_position(ui), position)
+            self.assertEqual(orb_position(ui), position)
 
     def test_wide_characters_stay_inside_the_left_pane(self):
         ui = self.make_ui()

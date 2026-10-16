@@ -207,14 +207,19 @@ class VoiceTransportTest(unittest.TestCase):
         captured = {}
 
         def start(command, **kwargs):
-            captured["text"] = kwargs["stdin"].read()
+            if command[0] == "/usr/bin/say":
+                captured["text"] = kwargs["stdin"].read()
+                captured["path"] = Path(command[command.index("-o") + 1])
+                write_wav(captured["path"], 1000)
             return process
 
         with patch.dict("os.environ", {}, clear=True), \
                 patch.object(voice.subprocess, "Popen", side_effect=start) as launch, patch.object(voice, "KeyReader"):
             self.assertTrue(audio.speak("**Bonjour** [[volm 0]] [Alex](https://example.com)."))
-        self.assertEqual(launch.call_args.args[0], ["/usr/bin/say", "-v", "Thomas", "-f", "-"])
+        self.assertEqual(launch.call_args_list[0].args[0][:5], ["/usr/bin/say", "-v", "Thomas", "-f", "-"])
+        self.assertEqual(launch.call_args_list[1].args[0], ["/usr/bin/afplay", str(captured["path"])])
         self.assertEqual(captured["text"], "Bonjour  Alex.")
+        self.assertFalse(captured["path"].parent.exists())
 
     def test_escape_stops_reading_but_quit_ends_the_conversation(self):
         for key, keep_chatting in (("back", True), ("quit", False)):
@@ -227,6 +232,52 @@ class VoiceTransportTest(unittest.TestCase):
                 self.assertEqual(audio.speak("Hallo Alex."), keep_chatting)
             process.terminate.assert_called_once()
             process.wait.assert_called_once()
+
+    def test_playback_can_be_skipped_or_quit_and_its_wav_is_removed(self):
+        for key, keep_chatting in (("back", True), ("quit", False)):
+            audio = self.make_audio()
+            synthesis = Mock(returncode=0)
+            synthesis.poll.return_value = 0
+            playback = Mock(returncode=-15)
+            playback.poll.return_value = None
+            paths = []
+
+            def start(command, **kwargs):
+                if command[0] == "/usr/bin/say":
+                    paths.append(Path(command[command.index("-o") + 1]))
+                    write_wav(paths[-1], 1000)
+                    return synthesis
+                self.assertEqual(command, ["/usr/bin/afplay", str(paths[-1])])
+                return playback
+
+            with self.subTest(key=key), patch.object(voice.subprocess, "Popen", side_effect=start), \
+                    patch.object(voice, "KeyReader") as reader:
+                reader.return_value.__enter__.return_value.read.return_value = key
+                self.assertEqual(audio.speak("Hallo Alex."), keep_chatting)
+            playback.terminate.assert_called_once()
+            playback.wait.assert_called_once()
+            self.assertFalse(paths[0].parent.exists())
+
+    def test_failed_speech_playback_keeps_chat_available_and_cleans_up(self):
+        audio = self.make_audio()
+        synthesis = Mock(returncode=0)
+        synthesis.poll.return_value = 0
+        playback = Mock(returncode=1)
+        playback.poll.return_value = 1
+        paths = []
+
+        def start(command, **kwargs):
+            if command[0] == "/usr/bin/say":
+                paths.append(Path(command[command.index("-o") + 1]))
+                write_wav(paths[-1], 1000)
+                return synthesis
+            return playback
+
+        with patch.object(voice.subprocess, "Popen", side_effect=start), patch.object(voice, "KeyReader"), \
+                contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertTrue(audio.speak("Hallo Alex."))
+        self.assertIn(TEXT["de"]["voice_playback_error"], " ".join(output.getvalue().split()))
+        self.assertFalse(paths[0].parent.exists())
 
     def test_capture_error_allows_retry_or_typing(self):
         audio = self.make_audio()

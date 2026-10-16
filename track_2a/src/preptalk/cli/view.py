@@ -1,25 +1,15 @@
 """Shared terminal layout for setup, text chat, and voice conversations."""
 
 from collections import deque
+import os
 import shutil
 import textwrap
 import threading
+import time
 import unicodedata
 
 from .keys import KeyReader
-
-PORTRAIT = (
-    '    .-"""-.',
-    "   / .---. \\",
-    "   | o   o |",
-    "   |   ^   |",
-    "   |  ---  |",
-    r"    \_____/",
-    "   /|  | |\\",
-    "  /_|__|_|_\\",
-)
-MOUTH_ROW = 4
-MOUTHS = ("   |  ---  |", "   |   o   |", "   |  ( )  |", "   |   o   |")
+from .orb import FPS, render_orb
 
 
 def cells(text):
@@ -46,7 +36,9 @@ class TerminalView:
         self.ui = ui
         self.entries = deque(maxlen=2000)
         self.footer = []
-        self.mouth = 0
+        self.audio_level = 0
+        self._started = time.monotonic()
+        self.reduced_motion = os.environ.get("PREPTALK_REDUCED_MOTION") == "1"
         self.offset = 0
         self.editing = None
         self.menu = None
@@ -60,8 +52,9 @@ class TerminalView:
     def dimensions(self):
         size = shutil.get_terminal_size()
         columns, rows = max(12, size.columns), max(4, size.lines)
-        portrait = columns >= 72 and rows >= 18
-        return columns, rows, columns - 25 if portrait else columns - 1, portrait
+        sidebar = columns >= 72 and rows >= 18
+        right_width = min(35, max(23, columns // 4))
+        return columns, rows, columns - right_width - 2 if sidebar else columns - 1, sidebar
 
     @property
     def width(self):
@@ -80,14 +73,14 @@ class TerminalView:
             self.entries.clear()
             self.footer = []
             self.progress = None
-            self.offset = self.mouth = 0
+            self.offset = self.audio_level = 0
 
     def show_menu(self, rows, footer, focus):
         with self._lock:
             self.menu = (rows, focus)
             self.footer = footer
             self.progress = None
-            self.mouth = 0
+            self.audio_level = 0
             self.render()
 
     def set_progress(self, progress):
@@ -109,11 +102,11 @@ class TerminalView:
             entries.append((self.ui.text["follow_up"], "2"))
         return entries
 
-    def set_footer(self, lines, mouth=None):
+    def set_footer(self, lines, audio_level=None):
         with self._lock:
             self.footer = lines
-            if mouth is not None:
-                self.mouth = mouth
+            if audio_level is not None:
+                self.audio_level = max(0, min(1, audio_level))
             self.render()
 
     def _wrap(self, entries, width):
@@ -128,7 +121,7 @@ class TerminalView:
         return result
 
     def _layout(self):
-        columns, height, width, portrait = self.dimensions
+        columns, height, width, sidebar = self.dimensions
         left = [("", None)] * height
         language = self.ui.text["language"]
         title = "  PrepTalk" + " " * max(1, columns - len(language) - 13) + language
@@ -152,7 +145,7 @@ class TerminalView:
         footer = footer[-max(1, height // 2):]
         bottom = height - len(footer) - 2
         top = min(5, max(0, bottom - 1))
-        if not portrait and self.progress and self.menu is None and bottom - top >= 4:
+        if not sidebar and self.progress and self.menu is None and bottom - top >= 4:
             label = self._progress_entries()[0][0]
             summary = self.ui.text["pane_completed"].format(**self.progress)
             left[top] = ("  " + textwrap.shorten(f"{label} · {summary}", width=max(1, width - 3),
@@ -176,26 +169,27 @@ class TerminalView:
         for row, line in enumerate(footer, height - len(footer) - 1):
             left[row] = line
 
-        progress_lines = self._wrap(self._progress_entries(), 24) if portrait else []
-        portrait_top = 7 if height >= 24 else 6
-        art_rows = PORTRAIT if height >= 24 else PORTRAIT[:6]
-        progress_top = portrait_top + len(art_rows) + 1
+        right_width = columns - width - 2
+        progress_lines = self._wrap(self._progress_entries(), right_width + 1) if sidebar else []
+        orb_top = 6
+        orb_height = 12 if height >= 30 else 9 if height >= 24 else 5
+        seconds = 0 if self.reduced_motion else int((time.monotonic() - self._started) * FPS) / FPS
+        art_rows = (render_orb(right_width, orb_height, seconds,
+                               0 if self.reduced_motion else self.audio_level, self.ui.color) if sidebar else [])
+        progress_top = orb_top + orb_height + 1
         frame = []
         for row, (text, style) in enumerate(left):
-            if portrait and 4 <= row < height - 1:
-                art = "Coach" if row == portrait_top - 2 else ""
-                if portrait_top <= row < portrait_top + len(art_rows):
-                    index = row - portrait_top
-                    art = MOUTHS[self.mouth] if index == MOUTH_ROW else PORTRAIT[index]
-                right = art.ljust(max(map(len, PORTRAIT))).center(23)
+            if sidebar and 4 <= row < height - 1:
+                right = self.ui.style("Coach".center(right_width), "36") if row == 4 else " " * right_width
+                if orb_top <= row < orb_top + orb_height:
+                    right = art_rows[row - orb_top]
                 progress_index = row - progress_top
-                right_style = "36"
                 if 0 <= progress_index < len(progress_lines):
                     right, right_style = progress_lines[progress_index]
-                    right = right.ljust(23)
+                    right = self.ui.style(right.ljust(right_width), right_style)
                 padded = text + " " * max(0, width - cells(text))
                 rendered = self.ui.style(padded, style) if style else padded
-                frame.append(rendered + self.ui.style("│", "2") + self.ui.style(right, right_style))
+                frame.append(rendered + self.ui.style("│", "2") + right)
             else:
                 frame.append(self.ui.style(text, style) if style else text)
         return frame, cursor, (columns, height)
@@ -245,7 +239,7 @@ class TerminalView:
                 while True:
                     self.editing = (label, value, position)
                     self.render()
-                    key = keyboard.read(timeout=0.1, text=True)
+                    key = keyboard.read(timeout=1 / FPS, text=True)
                     if key in ("back", "quit"):
                         return None
                     if key == "enter":

@@ -14,6 +14,8 @@ import wave
 
 from .keys import KeyReader
 from .microphone import PCMRecorder
+from .orb import FPS
+from .speech import SpeechEnvelope
 
 VOICE_HOME = Path(__file__).resolve().parents[3] / ".voice"
 
@@ -143,7 +145,7 @@ class VoiceIO:
         while True:
             self.ui.voice_controls()
             with KeyReader() as keyboard:
-                while (key := keyboard.read(timeout=0.1)) not in ("space", "enter", "back", "quit"):
+                while (key := keyboard.read(timeout=1 / FPS)) not in ("space", "enter", "back", "quit"):
                     self.ui.navigate(key)
                     self.ui.refresh()
             self.ui.voice_controls(visible=False)
@@ -171,33 +173,51 @@ class VoiceIO:
             except KeyboardInterrupt:
                 return ""
 
+    def _wait_for_speech(self, process, label, audio=None):
+        started = time.monotonic()
+        with self.ui.waiting(label, audio=audio), KeyReader() as keyboard:
+            while process.poll() is None:
+                key = keyboard.read(timeout=1 / FPS)
+                self.ui.navigate(key)
+                if key in ("back", "quit"):
+                    return key
+                if time.monotonic() - started > 300:
+                    raise VoiceError(self.ui.text["voice_playback_error"])
+        if process.returncode:
+            raise VoiceError(self.ui.text["voice_playback_error"])
+        return "finished"
+
     def speak(self, text):
         voice = os.environ.get("PREPTALK_TTS_VOICE") or self.voices.get(self.ui.lang)
         try:
             if not voice:
                 raise VoiceError(self.ui.text["voice_missing_language"])
-            with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as source, tempfile.TemporaryFile() as errors:
+            with tempfile.TemporaryDirectory(prefix="preptalk-speech-") as directory, \
+                    tempfile.TemporaryFile(mode="w+", encoding="utf-8") as source, tempfile.TemporaryFile() as errors:
+                path = Path(directory) / "reply.wav"
                 source.write(speech_text(text))
                 source.seek(0)
-                process = subprocess.Popen(["/usr/bin/say", "-v", voice, "-f", "-"], stdin=source,
+                process = subprocess.Popen(["/usr/bin/say", "-v", voice, "-f", "-", "-o", str(path),
+                                            "--file-format=WAVE", "--data-format=LEI16@22050"], stdin=source,
                                            stdout=subprocess.DEVNULL, stderr=errors, start_new_session=True)
                 try:
-                    started = time.monotonic()
-                    with self.ui.waiting(self.ui.text["voice_speaking"], speaking=True), KeyReader() as keyboard:
-                        while process.poll() is None:
-                            key = keyboard.read(timeout=0.1)
-                            self.ui.navigate(key)
-                            if key == "back":  # Escape skips this reading, keeping the conversation alive.
-                                return True
-                            if key == "quit":
-                                return False
-                            if time.monotonic() - started > 300:
-                                raise VoiceError(self.ui.text["voice_playback_error"])
-                    if process.returncode:
-                        raise VoiceError(self.ui.text["voice_playback_error"])
+                    result = self._wait_for_speech(process, self.ui.text["voice_preparing"])
                 finally:
                     stop_process(process)
-        except (VoiceError, OSError, subprocess.SubprocessError) as exc:
+                if result != "finished":
+                    return result == "back"
+                envelope = SpeechEnvelope(path)
+                started = time.monotonic()
+                process = subprocess.Popen(["/usr/bin/afplay", str(path)], stdin=subprocess.DEVNULL,
+                                           stdout=subprocess.DEVNULL, stderr=errors, start_new_session=True)
+                try:
+                    result = self._wait_for_speech(process, self.ui.text["voice_speaking"],
+                                                   audio=lambda: envelope.at(time.monotonic() - started))
+                finally:
+                    stop_process(process)
+                if result != "finished":
+                    return result == "back"
+        except (VoiceError, OSError, ValueError, wave.Error, subprocess.SubprocessError) as exc:
             self.ui.body(self.ui.text["voice_error"].format(error=str(exc)))
         except KeyboardInterrupt:
             return False

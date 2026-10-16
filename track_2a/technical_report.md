@@ -70,8 +70,7 @@ The experimental voice client additionally uses the multilingual Whisper base sp
 It is separate from the Apertus coach and was not part of the reported interview evaluation.
 
 FrameX is pre-existing MIT-licensed work from the Chair of Data Science and Natural Language
-Processing, University of St. Gallen. The dependency is pinned to
-`fae782d15ab1fbc75dff066b176d38d2ae8fca35`. PrepTalk's interview flow, adapters, rules and evaluation
+Processing, University of St. Gallen. PrepTalk's interview flow, adapters, rules and evaluation
 code are project-specific. The detailed report documents four extensions contributed to FrameX
 during the hackathon.
 

@@ -92,11 +92,14 @@ default, French and Italian available). `--lang` sets its initial value. Use `--
 directly with the command-line settings, e.g. `make chat ARGS="--no-menu --lang fr"`.
 
 The interactive menu, Chat and Voice share one layout: settings or conversation on the left,
-a fixed coach on the right, and input controls in the left footer. Interview progress stays below
+a fixed ASCII orb on the right, and input controls in the left footer. Interview progress stays below
 the coach, including the current main question, completion bar and follow-up status. Use **↑/↓**
 or **PgUp/PgDn** to browse chat history, including while typing; **Home/End** moves the text cursor
 when editing. Empty input + Enter or Escape exits. Final feedback remains open until Enter.
-Resizing reflows the layout; narrow terminals hide the coach pane and show progress above the chat.
+Resizing reflows the layout; narrow terminals hide the orb pane and show progress above the chat.
+The orb takes inspiration from the [ascii-orb void design](https://adriancodes.github.io/ascii-orb/)
+and uses the supplied grey, white and blue palette. Its idle motion is slow in the menu and chat;
+the Python renderer adds no frontend dependencies. Set `PREPTALK_REDUCED_MOTION=1` for a static orb.
 
 The mode selector defaults to **Chat**. **Voice (experimental)** adds local microphone recording,
 transcription and spoken replies on macOS. It uses the same Docker-hosted coach API; audio handling
@@ -131,7 +134,10 @@ both conversation modes share one terminal screen, which is restored when you ex
 terminal application when macOS asks. If setup is incomplete, the client explains what is missing
 and returns to the menu. It does not start a backend conversation.
 
-In Voice mode, the coach's mouth animates while speech plays and closes when playback finishes or is skipped.
+In Voice mode, the orb pulses and ripples with the actual amplitude of the coach's speech, including pauses.
+The client first synthesizes a temporary PCM WAV with macOS `say`, measures its audio levels and plays
+that same file with `afplay`. The file is deleted after playback or cancellation. Escape also skips speech
+while it is being prepared; stopping playback returns the orb to slow idle motion.
 The microphone meter stays in the left footer. You can also browse the conversation while waiting to
 record or listening; **Home/End** jumps to the start/latest text outside the text editor.
 

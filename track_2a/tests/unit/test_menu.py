@@ -45,8 +45,8 @@ class MenuTest(unittest.TestCase):
             ui.welcome(ASK_JOB["fr"], voice=True)
             self.assertIs(ui.view, old_view)
             snapshots.append(ui.view._previous.copy())
-            positions = [next((row, line.index("| o   o |")) for row, line in enumerate(frame)
-                              if "| o   o |" in line) for frame in snapshots]
+            positions = [next((row, len(line.partition("│")[0])) for row, line in enumerate(frame)
+                              if line.partition("│")[2].strip() == "Coach") for frame in snapshots]
             self.assertTrue(all(position == positions[0] for position in positions))
             translated = "\n".join(snapshots[-2])
             self.assertIn(TEXT["fr"]["main_menu"], translated)

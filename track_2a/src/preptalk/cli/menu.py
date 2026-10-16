@@ -5,6 +5,7 @@ import textwrap
 
 from . import catalog
 from .keys import KeyReader
+from .orb import FPS
 
 SITUATIONS = {
     "de": ("Vorstellungsgespräch", "Online-Interview", "Schnuppergespräch", "Nachgespräch", "Assessment", "Telefonanruf"),
@@ -83,7 +84,7 @@ def main_menu(ui, scenario=None, posting=None, mode="chat"):
         try:
             while True:
                 draw(ui, focus, scenario, posting, mode, choices, dropdown, cursor, status)
-                key = keyboard.read(timeout=0.1)
+                key = keyboard.read(timeout=1 / FPS)
                 if key == "quit":
                     return None
                 if key == "back":
