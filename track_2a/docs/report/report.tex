@@ -87,7 +87,7 @@
 {\fontsize{24}{28}\selectfont\bfseries PrepTalk}\\[3pt]
 {\large An interview coach in which Apertus talks and judges, and a rule engine decides}\\[8pt]
 {\sffamily\small Team NLP-Lab \textperiodcentered{} Götz-Henrik Wiegand (PhD student, University of St.\,Gallen) \textperiodcentered{} Online\\[2pt]
-Code: \repository{} (public) \textperiodcentered{}
+Code: \repository{} \textperiodcentered{}
 \ifdefempty{\videolink}{Demo video: accompanying submission}{\href{\videolink}{Demo video}}}
 \end{tcolorbox}
 
@@ -190,19 +190,30 @@ feedback quality, age-appropriateness and language consistency. Hard checks coun
 including aborted interviews, wrong-language reactions, third-person feedback and guard-handled text
 quoted as evidence. All live coach calls, including retries, count toward the call budget.
 
-\begin{center}
-\includegraphics[width=\textwidth]{ComparisonTable.png}
-\captionof{table}{Rules comparison. Both configurations cover 28 interviews. With rules, Opus criteria met
-are 67\,\% / 54\,\% on development / new scenarios (Gemini: 75\,\% / 67\,\%); without rules,
-the reported overall values are 42\,\% and 45\,\%. Calls per answer rise from 2.06 to 3.07.}
+\begin{center}\small
+\captionof{table}{Rules comparison (28 interviews per configuration). Criteria scores without rules are
+pooled; with rules, development / new-scenario scores are shown separately.}
 \label{tab:main}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{3.0cm}>{\raggedright\arraybackslash}p{5.0cm}@{}}
+\toprule
+\sffamily\bfseries Measure & \sffamily\bfseries Without rules & \sffamily\bfseries With rules \\
+\midrule
+Interviews passing all hard checks & 3 of 28 & 28 of 28 \\
+Scenario criteria met (Opus) & 42\,\% & 67\,\% / 54\,\% \\
+Scenario criteria met (Gemini) & 45\,\% & 75\,\% / 67\,\% \\
+Model calls per candidate answer & 2.06 & 3.07 \\
+\bottomrule
+\end{tabularx}
 \end{center}
 
 \begin{center}
 \includegraphics[width=\textwidth]{rules_spider.png}
-\captionof{figure}{Rules ablation under two judges. Blue: with rules; orange: without.
-Scenario criteria met and interviews passing all hard checks are percentages; aspect ratings are shown
-on the plot's 0--100 scale. These axes measure different outcomes and should be read individually.}
+\captionof{figure}{Both colours represent the Apertus~1.5~8B coach: orange shows Apertus~1.5~8B
+without rules; blue shows Apertus~1.5~8B with rules. Claude Opus~5.5 (left) and Gemini Pro (right)
+were used only as independent judges to rate the coach's responses on the displayed quality criteria;
+they did not generate the coach's responses. The hard-check pass rate is measured by regression checks.
+Scenario criteria met and hard-check pass rates are percentages; aspect ratings use a 0--100 display
+scale. Read each axis individually.}
 \label{fig:results}
 \end{center}
 
@@ -379,8 +390,8 @@ for a teacher review interface.
 
 \section*{Team, disclosure and licence}
 \textbf{Team NLP-Lab:} Götz-Henrik Wiegand, PhD student, University of St.\,Gallen, submitting privately.
-FrameX is pre-existing university work, used from its public MIT-licensed repository at commit
-\texttt{fae782d}. PrepTalk's application code was built during the hackathon. Development used AI coding
+FrameX is pre-existing university work, used from its public MIT-licensed repository.
+PrepTalk's application code was built during the hackathon. Development used AI coding
 assistance, including Claude Code.
 
 \textbf{Disclosure:} Siegfried Handschuh, Chair of Data Science and Natural Language Processing at the
@@ -392,6 +403,6 @@ FHGR data retains its HackApertus-use licence and is fetched separately. Sources
 \href{https://github.com/fhgr/Hackapertus}{FHGR / Profolio datasets, rubric and guidelines};
 \href{https://huggingface.co/swiss-ai/Apertus-v1.5-8B}{Swiss AI Apertus 1.5};
 \href{https://gitlab.com/ds-unisg/framex-core}{FrameX}; vLLM, LangGraph and Aegra.
-Code: \repository{} (public).
+Code: \repository{}.
 
 \end{document}
