@@ -10,6 +10,7 @@ from contextlib import contextmanager
 
 from .keys import KeyReader
 from .orb import FPS
+from .theme import accent_code, resolve_style
 from .view import TerminalView
 
 TEXT = {
@@ -18,12 +19,20 @@ TEXT = {
         "tagline": "Bereite dich auf dein nächstes Bewerbungsgespräch vor!",
         "you": "Du",
         "exit": "Leere Eingabe + Enter beendet den Chat.",
+        "chat_controls": "Enter: senden · Esc: Hauptmenü · leere Eingabe + Enter: beenden",
+        "edit_help": "←/→/↑/↓: Textcursor · Home/End: Anfang/Ende · PgUp/PgDn: Verlauf",
+        "leave_question": "Zurück zum Hauptmenü? Das aktuelle Übungsgespräch wird beendet.",
+        "yes": "Ja",
+        "no": "Nein",
+        "confirm_help": "Pfeiltasten: auswählen · Enter/Leertaste: bestätigen · Esc: weiter üben",
         "waiting": "Der Coach bereitet die Antwort vor",
         "goodbye": "Bis zum nächsten Mal. Viel Erfolg!",
         "trace": "Entscheidungsspur",
         "question": "Hauptfrage {current} von {total}",
         "completed_count": "{completed}/{total} Hauptfragen abgeschlossen",
         "pane_completed": "{completed}/{total} abgeschlossen",
+        "setup": "Vorbereitung",
+        "setup_completed": "{completed} Hauptfragen abgeschlossen",
         "finish": "Enter: beenden · ↑/↓ oder PgUp/PgDn: Verlauf",
         "follow_up": "Nachfrage zur aktuellen Hauptfrage",
         "questions": "Deine Fragen an den Betrieb",
@@ -72,12 +81,20 @@ TEXT = {
         "tagline": "Prépare ton prochain entretien d'embauche !",
         "you": "Toi",
         "exit": "Une réponse vide + Entrée ferme le chat.",
+        "chat_controls": "Entrée : envoyer · Échap : menu principal · réponse vide + Entrée : quitter",
+        "edit_help": "←/→/↑/↓ : curseur · Home/End : début/fin · PgUp/PgDn : historique",
+        "leave_question": "Revenir au menu principal ? L'entretien en cours sera terminé.",
+        "yes": "Oui",
+        "no": "Non",
+        "confirm_help": "Flèches : choisir · Entrée/Espace : confirmer · Échap : continuer",
         "waiting": "Le coach prépare sa réponse",
         "goodbye": "À bientôt et bonne chance !",
         "trace": "Trace des décisions",
         "question": "Question principale {current} sur {total}",
         "completed_count": "{completed}/{total} questions principales terminées",
         "pane_completed": "{completed}/{total} terminées",
+        "setup": "Préparation",
+        "setup_completed": "{completed} questions principales terminées",
         "finish": "Entrée : quitter · ↑/↓ ou PgUp/PgDn : historique",
         "follow_up": "Question complémentaire à la question actuelle",
         "questions": "Tes questions à l'entreprise",
@@ -126,12 +143,20 @@ TEXT = {
         "tagline": "Preparati per il tuo prossimo colloquio di lavoro!",
         "you": "Tu",
         "exit": "Lascia vuoto e premi Invio per uscire dalla chat.",
+        "chat_controls": "Invio: invia · Esc: menu principale · risposta vuota + Invio: esci",
+        "edit_help": "←/→/↑/↓: cursore · Home/End: inizio/fine · PgUp/PgDn: cronologia",
+        "leave_question": "Tornare al menu principale? Il colloquio in corso verrà terminato.",
+        "yes": "Sì",
+        "no": "No",
+        "confirm_help": "Frecce: scegli · Invio/Spazio: conferma · Esc: continua",
         "waiting": "Il coach sta preparando la risposta",
         "goodbye": "A presto e in bocca al lupo!",
         "trace": "Traccia delle decisioni",
         "question": "Domanda principale {current} di {total}",
         "completed_count": "{completed}/{total} domande principali completate",
         "pane_completed": "{completed}/{total} completate",
+        "setup": "Preparazione",
+        "setup_completed": "{completed} domande completate",
         "finish": "Invio: esci · ↑/↓ o PgUp/PgDn: cronologia",
         "follow_up": "Approfondimento della domanda attuale",
         "questions": "Le tue domande all'azienda",
@@ -183,6 +208,7 @@ class TerminalUI:
         self.lang = lang
         self.interactive = sys.stdout.isatty() and os.environ.get("TERM") != "dumb"
         self.color = self.interactive and "NO_COLOR" not in os.environ
+        self.accent = accent_code()
         self.screen_active = False
         self.view = None
 
@@ -221,7 +247,7 @@ class TerminalUI:
         return max(12, min(80, shutil.get_terminal_size().columns - 2))
 
     def style(self, text, code):
-        return f"\033[{code}m{text}\033[0m" if self.color else text
+        return f"\033[{resolve_style(code, self.accent)}m{text}\033[0m" if self.color else text
 
     def body_lines(self, text, width=None):
         # Preserve fixed-format feedback tables and code blocks; wrap prose to a comfortable reading width.
@@ -265,6 +291,7 @@ class TerminalUI:
         # Keep the setup question visually separate from the introduction in all three static greetings.
         intro, separator, question = greeting.rpartition(". ")
         self.message(f"{intro}.\n\n{question}" if separator else greeting)
+        self.progress({"phase": "setup", "total": None, "completed": 0, "current": 0, "follow_up": False})
         if not voice and not self.view:
             self.body(self.text["exit"], muted=True)
         self._write()
@@ -309,13 +336,14 @@ class TerminalUI:
             self.body(self.text["voice_controls"], muted=True)
 
     def ask(self):
-        return self.prompt(self.text["you"]) or ""
+        return self.prompt(self.text["you"], confirm_menu=True) or ""
 
-    def prompt(self, label):
+    def prompt(self, label, *, confirm_menu=False):
         try:
             if self.view:
-                self.view.set_footer([(self.text["exit"], "2"), (self.text["history"], "2")])
-                answer = self.view.prompt(label)
+                self.view.set_footer([(self.text["chat_controls" if confirm_menu else "exit"], "2"),
+                                      (self.text["edit_help"], "2")])
+                answer = self.view.prompt(label, confirm_menu=confirm_menu)
                 if answer:
                     self.view.append(f"{label}: {answer}")
                 return answer
@@ -339,9 +367,9 @@ class TerminalUI:
             label = self.text[phase]
         self.body(label, muted=True)
         size = min(20, self.width - 6)
-        filled = size * progress["completed"] // progress["total"]
+        filled = size * progress["completed"] // progress["total"] if progress["total"] else 0
         self.body("[" + "━" * filled + "·" * (size - filled) + "]", muted=True)
-        self.body(self.text["completed_count"].format(**progress), muted=True)
+        self.body(self.text["setup_completed" if phase == "setup" else "completed_count"].format(**progress), muted=True)
         if phase == "interview" and progress.get("follow_up"):
             self.body(self.text["follow_up"], muted=True)
         self._write()

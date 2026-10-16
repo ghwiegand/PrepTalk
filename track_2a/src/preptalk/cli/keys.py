@@ -56,12 +56,19 @@ class KeyReader:
                     if not part:
                         break
                     sequence += part
+                    if len(sequence) == 1 and part not in (b"[", b"O"):
+                        break
                     if len(sequence) >= 2 and (part.isalpha() or part == b"~"):
                         break
                     if len(sequence) >= 16:
                         break
                 if not sequence:
                     return "back"
+                if text:
+                    word = {b"b": "word_left", b"f": "word_right", b"[1;5D": "word_left",
+                            b"[1;5C": "word_right", b"[1;3D": "word_left", b"[1;3C": "word_right"}.get(sequence)
+                    if word:
+                        return word
                 if sequence.startswith((b"[", b"O")):
                     if sequence.endswith(b"~"):
                         return {b"[1~": "home", b"[4~": "end", b"[5~": "page_up", b"[6~": "page_down",
@@ -70,7 +77,8 @@ class KeyReader:
                             b"F": "end"}.get(sequence[-1:], "")
                 return ""
             if text:
-                return {"\r": "enter", "\n": "enter", "\x7f": "backspace", "\b": "backspace"}.get(
+                return {"\r": "enter", "\n": "enter", "\x7f": "backspace", "\b": "backspace",
+                        "\x01": "home", "\x05": "end", "\t": "tab"}.get(
                     char, char if char.isprintable() else "")
             return {" ": "space", "\r": "enter", "\n": "enter", "\t": "down"}.get(char, "")
         except (KeyboardInterrupt, EOFError):

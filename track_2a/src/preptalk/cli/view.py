@@ -12,6 +12,10 @@ from .keys import KeyReader
 from .orb import FPS, render_orb
 
 
+class ReturnToMenu(Exception):
+    """The user confirmed leaving the current interview for the main menu."""
+
+
 def cells(text):
     """Count terminal cells, including wide glyphs and combining accents."""
     return sum(0 if unicodedata.combining(char) else 2 if unicodedata.east_asian_width(char) in "WF" else 1
@@ -31,6 +35,25 @@ def cell_chunks(text, width):
         yield chunk
 
 
+def input_rows(value, width):
+    """Character ranges for visual input lines, leaving a cell for the end cursor."""
+    rows, start, used = [], 0, 0
+    for index, char in enumerate(value):
+        size = cells(char)
+        if used + size > width:
+            rows.append((start, index))
+            start, used = index, 0
+        used += size
+    rows.append((start, len(value)))
+    if used >= width:
+        rows.append((len(value), len(value)))
+    return rows
+
+
+def input_row(rows, position):
+    return max(index for index, (start, _) in enumerate(rows) if start <= position)
+
+
 class TerminalView:
     def __init__(self, ui):
         self.ui = ui
@@ -41,6 +64,7 @@ class TerminalView:
         self.reduced_motion = os.environ.get("PREPTALK_REDUCED_MOTION") == "1"
         self.offset = 0
         self.editing = None
+        self.confirmation = None
         self.menu = None
         self.progress = None
         self._previous = []
@@ -95,9 +119,10 @@ class TerminalView:
         label = (self.ui.text["question"].format(**progress) if progress["phase"] == "interview"
                  else self.ui.text[progress["phase"]])
         size = max(1, bar_width)
-        filled = size * progress["completed"] // progress["total"]
+        filled = size * progress["completed"] // progress["total"] if progress["total"] else 0
         entries = [(label, "1;36"), ("[" + "━" * filled + "·" * (size - filled) + "]", "36"),
-                   (self.ui.text["pane_completed"].format(**progress), "2")]
+                   (self.ui.text["setup_completed" if progress["phase"] == "setup" else "pane_completed"].format(
+                       **progress), "2")]
         if progress["phase"] == "interview" and progress.get("follow_up"):
             entries.append((self.ui.text["follow_up"], "2"))
         return entries
@@ -120,6 +145,9 @@ class TerminalView:
                                   for chunk in (list(cell_chunks(part, max(1, width - 4))) or [""]))
         return result
 
+    def _input_width(self, label):
+        return max(2, self.width - cells(f"  {label} › ") - 2)
+
     def _layout(self):
         columns, height, width, sidebar = self.dimensions
         left = [("", None)] * height
@@ -132,22 +160,30 @@ class TerminalView:
 
         footer = self._wrap(self.footer, width)
         cursor = None
-        if self.editing is not None:
+        if self.confirmation is not None:
+            footer = self._wrap([(self.ui.text["leave_question"], "1")], width)
+            for choice, name in ((True, "yes"), (False, "no")):
+                selected = choice == self.confirmation
+                footer.append((f"  {'›' if selected else ' '} {self.ui.text[name]}", "1;36" if selected else None))
+            footer.extend(self._wrap([(self.ui.text["confirm_help"], "2")], width))
+        elif self.editing is not None:
             label, value, position = self.editing
             prefix = f"  {label} › "
-            available = max(1, width - len(prefix) - 2)
-            start = 0
-            while cells(value[start:position]) >= available:
-                start += 1
-            visible = next(cell_chunks(value[start:], available), "")
-            footer.append((prefix + visible, None))
-            cursor = (height - 1, cells(prefix + value[start:position]) + 1)
+            rows = input_rows(value, self._input_width(label))
+            row = input_row(rows, position)
+            capacity = max(1, min(6, height // 2 - len(footer)))
+            first = max(0, min(row - capacity + 1, len(rows) - capacity))
+            cursor_index = len(footer) + row - first
+            for index, (start, end) in enumerate(rows[first:first + capacity]):
+                footer.append(((prefix if index == 0 else " " * cells(prefix)) + value[start:end], None))
+            cursor = (height - len(footer) + cursor_index, cells(prefix + value[rows[row][0]:position]) + 1)
         footer = footer[-max(1, height // 2):]
         bottom = height - len(footer) - 2
         top = min(5, max(0, bottom - 1))
         if not sidebar and self.progress and self.menu is None and bottom - top >= 4:
             label = self._progress_entries()[0][0]
-            summary = self.ui.text["pane_completed"].format(**self.progress)
+            summary = self.ui.text["setup_completed" if self.progress["phase"] == "setup" else "pane_completed"].format(
+                **self.progress)
             left[top] = ("  " + textwrap.shorten(f"{label} · {summary}", width=max(1, width - 3),
                                                 placeholder="…"), "2")
             left[top + 1] = ("  " + self._progress_entries(min(18, width - 6))[1][0], "36")
@@ -179,7 +215,8 @@ class TerminalView:
         orb_top += (orb_space - orb_height) // 2
         seconds = 0 if self.reduced_motion else int((time.monotonic() - self._started) * FPS) / FPS
         art_rows = (render_orb(right_width, orb_height, seconds,
-                               0 if self.reduced_motion else self.audio_level, self.ui.color) if sidebar else [])
+                               0 if self.reduced_motion else self.audio_level, self.ui.color,
+                               accent=self.ui.accent) if sidebar else [])
         progress_top = height - 2 - len(progress_lines)
         frame = []
         for row, (text, style) in enumerate(left):
@@ -235,21 +272,49 @@ class TerminalView:
             self.render()
         return True
 
-    def prompt(self, label):
+    def prompt(self, label, *, confirm_menu=False):
         """Edit inside the left pane, including long or pasted Unicode answers."""
         value, position = "", 0
+        goal_column = None
         try:
             with KeyReader() as keyboard:
                 while True:
                     self.editing = (label, value, position)
                     self.render()
                     key = keyboard.read(timeout=1 / FPS, text=True)
-                    if key in ("back", "quit"):
+                    if key == "quit":
                         return None
+                    if self.confirmation is not None:
+                        if key == "back":
+                            self.confirmation = None
+                        elif key in ("up", "left", "down", "right", "tab"):
+                            self.confirmation = not self.confirmation
+                        elif key in ("enter", " "):
+                            if self.confirmation:
+                                raise ReturnToMenu()
+                            self.confirmation = None
+                        continue
+                    if key == "back":
+                        if not confirm_menu:
+                            return None
+                        self.confirmation = False
+                        continue
                     if key == "enter":
                         return value
-                    if key in ("up", "down", "page_up", "page_down"):
+                    if key in ("page_up", "page_down"):
                         self.navigate(key)
+                    elif key in ("up", "down"):
+                        rows = input_rows(value, self._input_width(label))
+                        row = input_row(rows, position)
+                        if goal_column is None:
+                            goal_column = cells(value[rows[row][0]:position])
+                        target = max(0, min(len(rows) - 1, row + (1 if key == "down" else -1)))
+                        start, end = rows[target]
+                        position = start
+                        while position < end and cells(value[start:position + 1]) <= goal_column:
+                            position += 1
+                        if target < len(rows) - 1 and position == end:
+                            position = max(start, end - 1)
                     elif key == "backspace" and position:
                         value = value[:position - 1] + value[position:]
                         position -= 1
@@ -259,9 +324,22 @@ class TerminalView:
                         position = max(0, min(len(value), position + (1 if key == "right" else -1)))
                     elif key in ("home", "end"):
                         position = 0 if key == "home" else len(value)
+                    elif key == "word_left":
+                        while position and value[position - 1].isspace():
+                            position -= 1
+                        while position and not value[position - 1].isspace():
+                            position -= 1
+                    elif key == "word_right":
+                        while position < len(value) and not value[position].isspace():
+                            position += 1
+                        while position < len(value) and value[position].isspace():
+                            position += 1
                     elif len(key) == 1 and key.isprintable():
                         value = value[:position] + key + value[position:]
                         position += 1
+                    if key and key not in ("up", "down"):
+                        goal_column = None
         finally:
             self.editing = None
+            self.confirmation = None
             self.set_footer([])

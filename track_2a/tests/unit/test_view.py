@@ -261,3 +261,92 @@ class LayoutTest(unittest.TestCase):
                 occupied = len(left) + sum(left.count(char) for char in "你好👋")
                 self.assertEqual(occupied, ui.view.width)
                 self.assertLess(occupied + 1 + len(right), 80)
+
+    def test_wrapped_input_navigation_keeps_cursor_visible_after_resize(self):
+        ui = self.make_ui()
+        with patch("shutil.get_terminal_size") as size, patch.object(view, "KeyReader") as reader, \
+                contextlib.redirect_stdout(io.StringIO()):
+            size.return_value = os.terminal_size((100, 30))
+            ui.welcome(ASK_JOB['de'])
+            width = ui.view._input_width(ui.text["you"])
+            answer = "a" * (width * 9 + 7)
+            keys = iter([*answer, "home", "right", "right", "down", "X", "up", "Y", "page_up",
+                         "end", "left", "delete", "!", "enter"])
+            visited = []
+
+            def read(**kwargs):
+                key = next(keys)
+                label, value, position = ui.view.editing
+                row, col = ui.view._cursor
+                self.assertLessEqual(col, ui.view.width)
+                self.assertLess(row, size.return_value.lines)
+                # The actual cursor cell is visible in the rendered input, even in a long draft.
+                visible = frame(ui)[row - 1]
+                if position < len(value):
+                    self.assertEqual(visible[col - 1], value[position])
+                if key == "X":
+                    self.assertEqual(position, width + 2)
+                elif key == "Y":
+                    self.assertEqual(position, 3)
+                    size.return_value = os.terminal_size((80, 24))
+                visited.append(position)
+                return key
+
+            reader.return_value.__enter__.return_value.read.side_effect = read
+            self.assertEqual(ui.ask(), "aaaY" + "a" * (width - 1) + "X" + answer[width + 2:-1] + "!")
+            self.assertIn(width + 2, visited)
+            self.assertIsNone(ui.view.editing)
+
+    def test_word_jumps_insert_delete_and_boundary_navigation(self):
+        ui = self.make_ui()
+        with patch.object(view, "KeyReader") as reader, contextlib.redirect_stdout(io.StringIO()):
+            ui.welcome(ASK_JOB['de'])
+            keys = [*"Bonjour tout le monde", "word_left", "word_left", "X", "word_right", "delete",
+                    "home", "left", "backspace", "^", "end", "right", "delete", "!", "enter"]
+            reader.return_value.__enter__.return_value.read.side_effect = keys
+            self.assertEqual(ui.ask(), "^Bonjour tout Xle onde!")
+
+    def test_escape_confirmation_is_localized_and_cancel_preserves_draft_and_cursor(self):
+        for lang in ASK_JOB:
+            for cancel in ("enter", " ", "back"):
+                ui = self.make_ui(lang)
+                with self.subTest(lang=lang, cancel=cancel), patch.object(view, "KeyReader") as reader, \
+                        contextlib.redirect_stdout(io.StringIO()):
+                    ui.welcome(ASK_JOB[lang])
+                    progress = ui.view.progress
+                    keys = iter([*"Café", "left", "back", cancel, "X", "enter"])
+
+                    def read(**kwargs):
+                        key = next(keys)
+                        if key == cancel and ui.view.confirmation is not None:
+                            self.assertFalse(ui.view.confirmation)  # No is the default.
+                            self.assertFalse(ui.view._cursor)
+                            rendered = " ".join(" ".join(frame(ui)).split())
+                            self.assertIn(ui.text["leave_question"], rendered)
+                            self.assertIn("› " + ui.text["no"], rendered)
+                            self.assertIn(ui.text["yes"], rendered)
+                        return key
+
+                    reader.return_value.__enter__.return_value.read.side_effect = read
+                    self.assertEqual(ui.ask(), "CafXé")
+                    self.assertIs(ui.view.progress, progress)
+                    self.assertIsNone(ui.view.confirmation)
+
+    def test_confirming_return_cleans_up_prompt_and_ctrl_c_quits_directly(self):
+        for keys, expected in ((["back", "up", "enter"], "menu"),
+                               (["back", "left", " "], "menu"),
+                               (["back", "tab", "enter"], "menu"),
+                               (["quit"], "quit"), (["back", "quit"], "quit")):
+            ui = self.make_ui()
+            with self.subTest(keys=keys), patch.object(view, "KeyReader") as reader, \
+                    contextlib.redirect_stdout(io.StringIO()):
+                ui.welcome(ASK_JOB['de'])
+                reader.return_value.__enter__.return_value.read.side_effect = keys
+                if expected == "menu":
+                    with self.assertRaises(view.ReturnToMenu):
+                        ui.ask()
+                else:
+                    self.assertEqual(ui.ask(), "")
+                self.assertIsNone(ui.view.editing)
+                self.assertIsNone(ui.view.confirmation)
+                self.assertEqual(ui.view.footer, [])

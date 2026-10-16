@@ -16,6 +16,7 @@ from preptalk.cli import view
 from preptalk.cli.orb import PALETTE, render_orb
 from preptalk.cli.speech import SpeechEnvelope
 from preptalk.cli.terminal import TerminalUI
+from preptalk.cli.theme import resolve_style
 
 
 def plain(lines):
@@ -23,7 +24,7 @@ def plain(lines):
 
 
 class OrbTest(unittest.TestCase):
-    def test_frames_fit_their_grid_and_match_the_terminal_cyan_theme(self):
+    def test_frames_fit_their_grid_and_use_white_with_green_accents(self):
         for width, height in ((23, 5), (23, 9), (35, 12)):
             with self.subTest(width=width, height=height):
                 frame = render_orb(width, height, 2, 0.8, color=True)
@@ -31,8 +32,17 @@ class OrbTest(unittest.TestCase):
                 self.assertTrue(all(len(line) == width and line.isascii() for line in plain(frame)))
                 colors = set(re.findall(r"\033\[0;([\d;]+)m", "".join(frame)))
                 self.assertTrue(colors)
-                self.assertTrue(colors <= set(PALETTE))
-                self.assertTrue(all(code.endswith("36") for code in colors))
+                self.assertTrue(colors <= {resolve_style(code) for code in PALETTE})
+                self.assertTrue(any(code.endswith("37") for code in colors))
+                white = accent = 0
+                for line in frame:
+                    for code, text in re.findall(r"\033\[0;([\d;]+)m([^\033]*)", line):
+                        visible = len(text.replace(" ", ""))
+                        if code not in PALETTE[:3]:
+                            accent += visible
+                        else:
+                            white += visible
+                self.assertGreater(white, accent * 4)
                 self.assertNotIn("\033", "".join(render_orb(width, height, 2)))
 
     def test_idle_motion_is_slow_and_audio_changes_the_frame(self):
@@ -45,6 +55,14 @@ class OrbTest(unittest.TestCase):
         self.assertNotEqual(initial, render_orb(35, 12, 0, 0.9))
         self.assertEqual(initial, render_orb(35, 12, 0, -1))
         self.assertEqual(render_orb(35, 12, 0, 1), render_orb(35, 12, 0, 2))
+
+    def test_center_is_filled_at_idle_and_during_speech(self):
+        for seconds in (0, 2, 10, 25):
+            for level in (0, 0.8):
+                frame = render_orb(48, 16, seconds, level)
+                with self.subTest(seconds=seconds, level=level):
+                    for row in frame[7:9]:
+                        self.assertNotIn(" ", row[22:26])
 
     def test_menu_animates_without_input_and_keeps_left_pane_unchanged(self):
         ui = TerminalUI("de")

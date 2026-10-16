@@ -77,3 +77,13 @@ class KeyReaderTest(unittest.TestCase):
                 self.assertEqual(keys, [*"Quick answer", "enter"])
         finally:
             os.close(master)
+
+    def test_word_navigation_and_home_end_shortcuts(self):
+        master, slave = os.openpty()
+        try:
+            with os.fdopen(slave, "r") as terminal, patch("sys.stdin", terminal), KeyReader() as keyboard:
+                os.write(master, b"\x1b[1;5D\x1b[1;5C\x1bb\x1bf\x01\x05\t")
+                self.assertEqual([keyboard.read(text=True) for _ in range(7)],
+                                 ["word_left", "word_right", "word_left", "word_right", "home", "end", "tab"])
+        finally:
+            os.close(master)

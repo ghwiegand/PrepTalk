@@ -93,14 +93,26 @@ directly with the command-line settings, e.g. `make chat ARGS="--no-menu --lang 
 
 The interactive menu, Chat and Voice share one layout: settings or conversation on the left,
 a large fixed ASCII orb on the right, and input controls in the left footer. Interview progress is centered
-at the bottom of the right pane, including the current main question, completion bar and follow-up status. Use **↑/↓**
-or **PgUp/PgDn** to browse chat history, including while typing; **Home/End** moves the text cursor
-when editing. Empty input + Enter or Escape exits. Final feedback remains open until Enter.
+at the bottom of the right pane, including the current main question, completion bar and follow-up status.
+Answers wrap across multiple input lines. **←/→** moves the cursor through text; **↑/↓** moves between
+input lines. **Home/End** (or Ctrl-A/Ctrl-E) goes to the start/end, and Ctrl-Left/Ctrl-Right (or
+Alt-B/Alt-F, where supported by the terminal) jumps between words. Backspace/Delete edits at the cursor.
+Use **PgUp/PgDn** to browse chat history while typing; outside text input, **↑/↓** also scrolls history.
+**Escape** at the text prompt asks whether to return to the main menu, with localized **Yes/No** choices
+and **No** selected initially. Use arrow keys and Enter or Space to confirm; Escape cancels. Cancelling
+keeps the draft and cursor; confirming ends the current practice session and keeps the menu settings.
+This also works when starting with `--no-menu`. Empty input + Enter exits. Final feedback remains open until Enter.
 Resizing reflows the layout; narrow terminals hide the orb pane and show progress above the chat.
 The orb takes inspiration from the [ascii-orb void design](https://adriancodes.github.io/ascii-orb/)
-and uses the same cyan terminal theme as the rest of the interface. The orb fills the available pane
-with a larger character grid; terminal font size applies to the entire interface. Its idle motion is slow in the menu and chat;
+and uses white shading with small blue-green accents matching the interface's brighter `#8FC7D1`
+highlight (based on `#73A5AF`). Its filled center and independent moving filaments add detail while
+the orb keeps its current size. Older terminals fall back to 256 or 16 colors. Terminal font size
+applies to the entire interface; the renderer uses standard text and ANSI colors across terminals.
+Its idle motion is slow in the menu and chat;
 the Python renderer adds no frontend dependencies. Set `PREPTALK_REDUCED_MOTION=1` for a static orb.
+The empty progress bar appears immediately with a localized preparation label and zero completed
+questions. The total is filled in once the backend knows the interview plan; opening the chat makes
+no model request.
 
 The mode selector defaults to **Chat**. **Voice (experimental)** adds local microphone recording,
 transcription and spoken replies on macOS. It uses the same Docker-hosted coach API; audio handling

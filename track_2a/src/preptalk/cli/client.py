@@ -11,6 +11,7 @@ import urllib.request
 from preptalk.coach.greetings import ASK_JOB
 from .menu import main_menu
 from .terminal import TerminalUI
+from .view import ReturnToMenu
 
 
 def post(url, body):
@@ -38,9 +39,10 @@ def main():
 
 
 def run_chat(args, ui):
-    speech = None
+    show_menu = not args.no_menu
     while True:
-        if not args.no_menu:
+        speech = None
+        if show_menu:
             selection = main_menu(ui, args.scenario, args.posting, args.mode)
             if selection is None:
                 ui.goodbye()
@@ -52,13 +54,22 @@ def run_chat(args, ui):
                 speech = VoiceIO(ui)
             except (VoiceError, OSError, subprocess.SubprocessError) as exc:
                 ui.body(ui.text["voice_unavailable"].format(error=str(exc)))
-                if args.no_menu:
+                if not show_menu:
                     return
                 args.mode = "chat"
                 if ui.prompt(ui.text["voice_return"]) is None:
                     return
                 continue
-        break
+        try:
+            run_interview(args, ui, speech)
+        except ReturnToMenu:
+            show_menu = True
+            continue
+        return
+
+
+def run_interview(args, ui, speech=None):
+    """One practice session; returning to setup starts a fresh backend thread."""
     greeting = ui.text["preset_greeting"] if args.scenario or args.posting else ASK_JOB[ui.lang]
     ui.welcome(greeting, voice=bool(speech))
     if speech and not speech.speak(greeting):
